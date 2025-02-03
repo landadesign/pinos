@@ -8,6 +8,12 @@ import io
 from PIL import Image, ImageDraw, ImageFont
 import re
 from io import BytesIO
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.units import mm
 
 # 定数
 RATE_PER_KM = 15
@@ -223,6 +229,49 @@ def create_expense_report(person_data):
     
     return pd.DataFrame(display_rows)
 
+def create_pdf(expense_data, name):
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=landscape(A4),
+        rightMargin=20*mm,
+        leftMargin=20*mm,
+        topMargin=20*mm,
+        bottomMargin=20*mm
+    )
+    
+    # データをリスト形式に変換
+    data = [expense_data.columns.tolist()]  # ヘッダー
+    data.extend(expense_data.values.tolist())  # データ行
+    
+    # テーブルスタイルの設定
+    table = Table(data)
+    style = TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONT', (0, 0), (-1, 0), 'Helvetica-Bold', 10),
+        ('FONT', (0, 1), (-1, -1), 'Helvetica', 10),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+        ('ALIGN', (2, 1), (-1, -1), 'RIGHT'),
+        ('FONTSIZE', (0, 1), (-1, -1), 10),
+    ])
+    table.setStyle(style)
+    
+    # タイトルと注釈を追加
+    elements = []
+    elements.append(table)
+    
+    # PDFを生成
+    doc.build(elements)
+    
+    return buffer
+
 def main():
     st.title("PINO精算アプリケーション")
     
@@ -343,14 +392,15 @@ def main():
         st.markdown("---")
         col1, col2 = st.columns([1, 1])
         with col1:
-            # CSVダウンロードボタン
-            csv = df.to_csv(index=False).encode('utf-8-sig')
-            st.download_button(
-                label="表示中の精算書をCSVでダウンロード",
-                data=csv,
-                file_name=f'精算書_{calculationDate}.csv',
-                mime='text/csv'
-            )
+            # PDFダウンロードボタン
+            if st.button("表示中の精算書をPDFでダウンロード"):
+                pdf_buffer = create_pdf(expense_data, name)
+                st.download_button(
+                    label="PDFをダウンロード",
+                    data=pdf_buffer.getvalue(),
+                    file_name=f'精算書_{name}様_{calculationDate}.pdf',
+                    mime='application/pdf'
+                )
         with col2:
             # Excelダウンロードボタン
             output = BytesIO()
