@@ -163,13 +163,13 @@ def parse_expense_data(text):
     return pd.DataFrame(parsed_entries)
 
 def create_expense_report(person_data):
-    # データフレームの作成
+    # データフレームの作成時に数値を整数型に変換
     expense_data = pd.DataFrame({
         '日付': person_data['date'],
         '経路': person_data['route'],
         '合計距離(km)': person_data['distance'].round(1),
         '交通費（距離×15P）(円)': (person_data['distance'] * 15).round().astype(int),
-        '運転手当(円)': 500,
+        '運転手当(円)': pd.Series([500] * len(person_data), dtype=int),
         '合計(円)': (person_data['distance'] * 15 + 500).round().astype(int)
     })
     
@@ -482,7 +482,7 @@ def main():
                         person_data = df[df['name'] == name].copy()
                         expense_data = create_expense_report(person_data)
                         
-                        # 精算書の表示（金額の桁区切りを修正）
+                        # 精算書の表示（数値フォーマットを修正）
                         st.dataframe(
                             expense_data,
                             column_config={
@@ -495,17 +495,17 @@ def main():
                                 ),
                                 '交通費（距離×15P）(円)': st.column_config.NumberColumn(
                                     '交通費（距離×15P）(円)',
-                                    format="{:,.0f}",  # フォーマットを修正
+                                    format="%.0f",  # フォーマットを修正
                                     width=200
                                 ),
                                 '運転手当(円)': st.column_config.NumberColumn(
                                     '運転手当(円)',
-                                    format="{:,.0f}",  # フォーマットを修正
+                                    format="%.0f",  # フォーマットを修正
                                     width=150
                                 ),
                                 '合計(円)': st.column_config.NumberColumn(
                                     '合計(円)',
-                                    format="{:,.0f}",  # フォーマットを修正
+                                    format="%.0f",  # フォーマットを修正
                                     width=150
                                 )
                             },
