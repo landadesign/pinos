@@ -162,6 +162,63 @@ def parse_expense_data(text):
     
     return pd.DataFrame(parsed_entries)
 
+def create_expense_report(person_data):
+    # 日付でグループ化してデータを集計
+    daily_data = {}
+    
+    # 日付順にソート
+    person_data = person_data.sort_values('date')
+    
+    for _, row in person_data.iterrows():
+        date = row['date']
+        if date not in daily_data:
+            daily_data[date] = {
+                'routes': [],
+                'total_distance': 0,
+                'transportation_fee': 0,
+                'allowance': 200  # 1日の運転手当
+            }
+        
+        daily_data[date]['routes'].append({
+            'route': row['route'],
+            'distance': row['distance']
+        })
+        daily_data[date]['total_distance'] += row['distance']
+    
+    # 表示用データの作成
+    display_rows = []
+    total_amount = 0
+    
+    for date in daily_data:
+        day_data = daily_data[date]
+        # 交通費計算（1kmあたり15円、小数点以下切り捨て）
+        transportation_fee = int(day_data['total_distance'] * 15)
+        day_total = transportation_fee + day_data['allowance']
+        total_amount += day_total
+        
+        # 同日の経路を別々の行に表示
+        for i, route in enumerate(day_data['routes']):
+            display_rows.append({
+                '日付': date,
+                '経路': route['route'],
+                '合計距離(km)': day_data['total_distance'] if i == 0 else '',
+                '交通費（距離×15P）(円)': transportation_fee if i == 0 else '',
+                '運転手当(円)': day_data['allowance'] if i == 0 else '',
+                '合計(円)': day_total if i == 0 else ''
+            })
+    
+    # 合計行の追加
+    display_rows.append({
+        '日付': '',
+        '経路': '',
+        '合計距離(km)': '',
+        '交通費（距離×15P）(円)': '',
+        '運転手当(円)': '',
+        '合計(円)': total_amount
+    })
+    
+    return pd.DataFrame(display_rows)
+
 def main():
     st.title("PINO精算アプリケーション")
     
@@ -233,18 +290,40 @@ def main():
         # 担当者ごとの精算書表示
         for i, name in enumerate(unique_names):
             with tabs[i]:
-                st.markdown(f"### {name}様 12月25日～1月 社内通貨（交通費）清算額")
+                st.markdown(f"### {name}様 2024年12月25日～2025年1月 社内通貨（交通費）清算額")
                 
                 # 担当者のデータを抽出
                 person_data = df[df['name'] == name].copy()
                 
-                # データフレームを表示
+                # 精算書データの作成
+                expense_data = create_expense_report(person_data)
+                
+                # 精算書の表示
                 st.dataframe(
-                    person_data,
+                    expense_data,
                     column_config={
-                        'date': st.column_config.TextColumn('日付', width=100),
-                        'route': st.column_config.TextColumn('経路', width=400),
-                        'distance': st.column_config.NumberColumn('距離(km)', format="%.1f", width=100)
+                        '日付': st.column_config.TextColumn('日付', width=100),
+                        '経路': st.column_config.TextColumn('経路', width=500),
+                        '合計距離(km)': st.column_config.NumberColumn(
+                            '合計距離(km)',
+                            format="%.1f",
+                            width=120
+                        ),
+                        '交通費（距離×15P）(円)': st.column_config.NumberColumn(
+                            '交通費（距離×15P）(円)',
+                            format="%d",
+                            width=150
+                        ),
+                        '運転手当(円)': st.column_config.NumberColumn(
+                            '運転手当(円)',
+                            format="%d",
+                            width=120
+                        ),
+                        '合計(円)': st.column_config.NumberColumn(
+                            '合計(円)',
+                            format="%d",
+                            width=120
+                        )
                     },
                     hide_index=True
                 )
@@ -273,11 +352,6 @@ def main():
                     window.print();
                 </script>
                 """, unsafe_allow_html=True)
-
-def create_expense_report(person_data):
-    # 精算書データの作成ロジック
-    # ... (以前の精算書作成ロジックを実装)
-    pass
 
 if __name__ == "__main__":
     main()
