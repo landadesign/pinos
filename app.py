@@ -16,6 +16,9 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.units import mm
 import plotly.graph_objects as go
 from html2image import Html2Image
+import base64
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 
 # 定数
 RATE_PER_KM = 15
@@ -281,7 +284,11 @@ def create_png(expense_data, name):
     <head>
         <style>
             body {{ font-family: Arial, sans-serif; padding: 20px; }}
-            table {{ border-collapse: collapse; width: 100%; }}
+            table {{ 
+                border-collapse: collapse; 
+                width: 100%;
+                margin-bottom: 20px;
+            }}
             th, td {{ 
                 border: 1px solid #ddd; 
                 padding: 8px; 
@@ -291,6 +298,8 @@ def create_png(expense_data, name):
                 background-color: #2196F3; 
                 color: white; 
             }}
+            td {{ text-align: right; }}
+            td:nth-child(1), td:nth-child(2) {{ text-align: left; }}
             .title {{ 
                 text-align: center; 
                 margin-bottom: 20px; 
@@ -310,14 +319,23 @@ def create_png(expense_data, name):
     </html>
     """
     
-    # HTML to PNG
-    hti = Html2Image()
-    img_bytes = hti.screenshot(
-        html_str=html_content,
-        size=(1200, len(expense_data) * 30 + 200)
-    )
+    # Chromeのオプション設定
+    chrome_options = Options()
+    chrome_options.add_argument('--headless')  # ヘッドレスモード
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
     
-    return img_bytes[0]  # 最初の画像を返す
+    # WebDriverの初期化
+    driver = webdriver.Chrome(options=chrome_options)
+    
+    try:
+        # HTMLの読み込みとスクリーンショット
+        driver.get("data:text/html;charset=utf-8," + html_content)
+        driver.set_window_size(1200, len(expense_data) * 30 + 200)
+        png_data = driver.get_screenshot_as_png()
+        return png_data
+    finally:
+        driver.quit()
 
 def main():
     st.title("PINO精算アプリケーション")
@@ -441,12 +459,10 @@ def main():
         with col1:
             # PNGダウンロードボタン
             if st.button("表示中の精算書をPNGでダウンロード"):
-                png_path = create_png(expense_data, name)
-                with open(png_path, 'rb') as f:
-                    png_bytes = f.read()
+                png_data = create_png(expense_data, name)
                 st.download_button(
                     label="PNGをダウンロード",
-                    data=png_bytes,
+                    data=png_data,
                     file_name=f'精算書_{name}様_{calculationDate}.png',
                     mime='image/png'
                 )
