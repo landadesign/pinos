@@ -1,26 +1,8 @@
-from streamlit import set_page_config
-set_page_config(layout="wide")
-
-import streamlit as st
 import pandas as pd
-from datetime import datetime
-import io
-from PIL import Image, ImageDraw, ImageFont
-import re
+import streamlit as st
 from io import BytesIO
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4, landscape
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.lib.units import mm
-import plotly.graph_objects as go
-from html2image import Html2Image
-import base64
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-import pyautogui
-import time
+from datetime import datetime
+import re
 import openpyxl
 
 # 定数
