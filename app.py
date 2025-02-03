@@ -381,7 +381,7 @@ def export_to_excel(df, unique_names):
         
         # 行の高さを設定
         worksheet.row_dimensions[1].height = 45  # タイトル行
-        worksheet.row_dimensions[2].height = 30  # ヘッダー行
+        worksheet.row_dimensions[2].height = 60  # ヘッダー行を60に変更
         
         # タイトルを追加
         title = f"{name}様 2025年1月 社内通貨（交通費）清算額"
