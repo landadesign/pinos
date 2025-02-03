@@ -482,7 +482,7 @@ def main():
                         person_data = df[df['name'] == name].copy()
                         expense_data = create_expense_report(person_data)
                         
-                        # 精算書の表示（金額の桁区切りを追加）
+                        # 精算書の表示（金額の桁区切りを修正）
                         st.dataframe(
                             expense_data,
                             column_config={
@@ -495,17 +495,17 @@ def main():
                                 ),
                                 '交通費（距離×15P）(円)': st.column_config.NumberColumn(
                                     '交通費（距離×15P）(円)',
-                                    format="%,d",  # 桁区切りを追加
+                                    format="{:,.0f}",  # フォーマットを修正
                                     width=200
                                 ),
                                 '運転手当(円)': st.column_config.NumberColumn(
                                     '運転手当(円)',
-                                    format="%,d",  # 桁区切りを追加
+                                    format="{:,.0f}",  # フォーマットを修正
                                     width=150
                                 ),
                                 '合計(円)': st.column_config.NumberColumn(
                                     '合計(円)',
-                                    format="%,d",  # 桁区切りを追加
+                                    format="{:,.0f}",  # フォーマットを修正
                                     width=150
                                 )
                             },
