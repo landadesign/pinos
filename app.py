@@ -363,7 +363,7 @@ def export_to_excel(df, unique_names):
         worksheet.row_dimensions[2].height = 60  # ヘッダー行
         
         # タイトルを追加
-        title = f"{name}様 2024年12月25日～2025年1月 社内通貨（交通費）清算額"
+        title = f"{name}様 2025年1月 社内通貨（交通費）清算額"
         worksheet['A1'] = title
         worksheet.merge_cells('A1:F1')
         title_cell = worksheet['A1']
