@@ -246,15 +246,15 @@ def main():
                     st.dataframe(
                         display_df[['入力データ', '担当者', '日付', '経路', '距離(km)']],
                         column_config={
-                            '入力データ': st.column_config.TextColumn('入力データ', width=800),  # 幅を増加
+                            '入力データ': st.column_config.TextColumn('入力データ', width=800),
                             '担当者': st.column_config.TextColumn('担当者', width=200),
                             '日付': st.column_config.TextColumn('日付', width=150),
-                            '経路': st.column_config.TextColumn('経路', width=700),  # 幅を増加
+                            '経路': st.column_config.TextColumn('経路', width=700),
                             '距離(km)': st.column_config.NumberColumn('距離(km)', format="%.1f", width=150)
                         },
                         hide_index=True,
-                        height=800,  # 高さを増加
-                        use_container_width=True  # コンテナの幅いっぱいに表示
+                        height=800,
+                        use_container_width=True
                     )
                     
                     # 精算書を表示するボタン
