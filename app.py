@@ -163,61 +163,30 @@ def parse_expense_data(text):
     return pd.DataFrame(parsed_entries)
 
 def create_expense_report(person_data):
-    # 日付でグループ化してデータを集計
-    daily_data = {}
-    
-    # 日付順にソート
-    person_data = person_data.sort_values('date')
-    
-    for _, row in person_data.iterrows():
-        date = row['date']
-        if date not in daily_data:
-            daily_data[date] = {
-                'routes': [],
-                'total_distance': 0,
-                'transportation_fee': 0,
-                'allowance': 200  # 1日の運転手当
-            }
-        
-        daily_data[date]['routes'].append({
-            'route': row['route'],
-            'distance': row['distance']
-        })
-        daily_data[date]['total_distance'] += row['distance']
-    
-    # 表示用データの作成
-    display_rows = []
-    total_amount = 0
-    
-    for date in daily_data:
-        day_data = daily_data[date]
-        # 交通費計算（1kmあたり15円、小数点以下切り捨て）
-        transportation_fee = int(day_data['total_distance'] * 15)
-        day_total = transportation_fee + day_data['allowance']
-        total_amount += day_total
-        
-        # 同日の経路を別々の行に表示
-        for i, route in enumerate(day_data['routes']):
-            display_rows.append({
-                '日付': date,
-                '経路': route['route'],
-                '合計距離(km)': day_data['total_distance'] if i == 0 else '',
-                '交通費（距離×15P）(円)': transportation_fee if i == 0 else '',
-                '運転手当(円)': day_data['allowance'] if i == 0 else '',
-                '合計(円)': day_total if i == 0 else ''
-            })
-    
-    # 合計行の追加
-    display_rows.append({
-        '日付': '',
-        '経路': '',
-        '合計距離(km)': '',
-        '交通費（距離×15P）(円)': '',
-        '運転手当(円)': '',
-        '合計(円)': total_amount
+    # データフレームの作成
+    expense_data = pd.DataFrame({
+        '日付': person_data['date'],
+        '経路': person_data['route'],
+        '合計距離(km)': person_data['distance'].round(1),
+        '交通費（距離×15P）(円)': (person_data['distance'] * 15).round().astype(int),
+        '運転手当(円)': 500,
+        '合計(円)': (person_data['distance'] * 15 + 500).round().astype(int)
     })
     
-    return pd.DataFrame(display_rows)
+    # 合計行の追加
+    total_row = pd.DataFrame({
+        '日付': ['合計'],
+        '経路': [''],
+        '合計距離(km)': [expense_data['合計距離(km)'].sum()],
+        '交通費（距離×15P）(円)': [expense_data['交通費（距離×15P）(円)'].sum()],
+        '運転手当(円)': [expense_data['運転手当(円)'].sum()],
+        '合計(円)': [expense_data['合計(円)'].sum()]
+    })
+    
+    # データフレームを結合
+    expense_data = pd.concat([expense_data, total_row], ignore_index=True)
+    
+    return expense_data
 
 def create_pdf(expense_data, name):
     buffer = BytesIO()
@@ -513,12 +482,12 @@ def main():
                         person_data = df[df['name'] == name].copy()
                         expense_data = create_expense_report(person_data)
                         
-                        # 精算書の表示（幅を調整）
+                        # 精算書の表示（金額の桁区切りを追加）
                         st.dataframe(
                             expense_data,
                             column_config={
                                 '日付': st.column_config.TextColumn('日付', width=120),
-                                '経路': st.column_config.TextColumn('経路', width=600),  # 経路の幅を広げる
+                                '経路': st.column_config.TextColumn('経路', width=600),
                                 '合計距離(km)': st.column_config.NumberColumn(
                                     '合計距離(km)',
                                     format="%.1f",
@@ -526,17 +495,17 @@ def main():
                                 ),
                                 '交通費（距離×15P）(円)': st.column_config.NumberColumn(
                                     '交通費（距離×15P）(円)',
-                                    format="%d",
+                                    format="%,d",  # 桁区切りを追加
                                     width=200
                                 ),
                                 '運転手当(円)': st.column_config.NumberColumn(
                                     '運転手当(円)',
-                                    format="%d",
+                                    format="%,d",  # 桁区切りを追加
                                     width=150
                                 ),
                                 '合計(円)': st.column_config.NumberColumn(
                                     '合計(円)',
-                                    format="%d",
+                                    format="%,d",  # 桁区切りを追加
                                     width=150
                                 )
                             },
