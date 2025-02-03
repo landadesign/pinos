@@ -189,17 +189,55 @@ def main():
             if input_text:
                 df = parse_expense_data(input_text)
                 st.session_state['df'] = df
-                st.session_state['show_expense_report'] = True
                 st.success("データを解析しました！")
                 
-                # 精算書を表示するボタン
-                if st.button("精算書を表示"):
-                    st.session_state['show_expense_report'] = True
-                    st.experimental_rerun()
+                # データ一覧の表示
+                if not df.empty:
+                    st.write("### 交通費データ一覧")
+                    
+                    # 表示用のデータを作成
+                    display_rows = []
+                    for _, row in df.iterrows():
+                        for route in row['routes']:
+                            display_rows.append({
+                                'No.': row.name + 1,
+                                '担当者': row['name'],
+                                '日付': row['date'],
+                                '経路': route['route'],
+                                '距離(km)': route['distance']
+                            })
+                    
+                    # 表示用のDataFrame作成
+                    display_df = pd.DataFrame(display_rows)
+                    
+                    # 日付でソート
+                    display_df['sort_date'] = display_df['日付'].apply(
+                        lambda x: tuple(map(int, x.split('/'))) if isinstance(x, str) else (0, 0)
+                    )
+                    display_df = display_df.sort_values(['sort_date', 'No.'])
+                    display_df = display_df.drop('sort_date', axis=1)
+                    
+                    st.dataframe(
+                        display_df,
+                        column_config={
+                            'No.': st.column_config.NumberColumn('No.', width=80),
+                            '担当者': st.column_config.TextColumn('担当者', width=150),
+                            '日付': st.column_config.TextColumn('日付', width=100),
+                            '経路': st.column_config.TextColumn('経路', width=400),
+                            '距離(km)': st.column_config.NumberColumn('距離(km)', format="%.1f", width=100)
+                        },
+                        hide_index=True
+                    )
+                    
+                    # 精算書を表示するボタン
+                    if st.button("精算書を表示"):
+                        st.session_state['show_expense_report'] = True
+                        st.experimental_rerun()
 
     # 精算書の表示
     if st.session_state.get('show_expense_report', False) and 'df' in st.session_state:
         df = st.session_state['df']
+        st.write("### 精算書")
         
         # タブの作成
         unique_names = sorted(df['name'].unique())
