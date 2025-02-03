@@ -173,28 +173,29 @@ def process_entry(text):
 
 def create_expense_report(person_data):
     """個人の精算書データを作成（経路ごとに表示）"""
-    # 日付でグループ化して運転手当を計算
-    daily_allowance = person_data.groupby('date').size().map(lambda x: 200).reset_index()
-    daily_allowance.columns = ['date', 'allowance']
-    
     # データを日付順にソート
     person_data = person_data.sort_values('date')
     
     # 各経路のデータを作成
     route_data = []
-    for date, group in person_data.groupby('date'):
-        allowance = daily_allowance[daily_allowance['date'] == date]['allowance'].iloc[0]
-        allowance_per_route = allowance / len(group)  # 運転手当を経路数で分配
+    current_date = None
+    
+    for _, row in person_data.iterrows():
+        # 日付が変わったら運転手当を付与
+        if current_date != row['date']:
+            current_date = row['date']
+            add_allowance = 200  # 新しい日付の最初の経路に運転手当を付与
+        else:
+            add_allowance = 0  # 同じ日付の2つ目以降の経路には運転手当を付与しない
         
-        for _, row in group.iterrows():
-            route_data.append({
-                '日付': row['date'],
-                '経路': row['route'],
-                '合計距離(km)': round(row['distance'], 1),
-                '交通費（距離×15P）(円)': int(row['distance'] * 15),
-                '運転手当(円)': int(allowance_per_route),
-                '合計(円)': int(row['distance'] * 15 + allowance_per_route)
-            })
+        route_data.append({
+            '日付': row['date'],
+            '経路': row['route'],
+            '合計距離(km)': round(row['distance'], 1),
+            '交通費（距離×15P）(円)': int(row['distance'] * 15),
+            '運転手当(円)': add_allowance,
+            '合計(円)': int(row['distance'] * 15 + add_allowance)
+        })
     
     # DataFrameを作成
     expense_data = pd.DataFrame(route_data)
