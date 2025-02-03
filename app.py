@@ -203,13 +203,24 @@ def main():
                     display_rows = []
                     for line in input_lines:
                         if line.startswith('【ピノ】'):
-                            # 入力データをそのまま表示用に保持
+                            # 距離の抽出と変換
+                            distance_str = line.split()[-1]
+                            distance_str = distance_str.replace('ｋｍ', '').replace('km', '')
+                            try:
+                                distance = float(distance_str)
+                            except ValueError:
+                                distance = 0.0
+                                
+                            # 経路の抽出
+                            route_parts = line.split('】')[1].split()
+                            route = ' '.join(route_parts[2:-1])  # 日付と距離を除いた部分
+                            
                             display_rows.append({
                                 '入力データ': line,
                                 '担当者': line.split()[1],
                                 '日付': line.split()[2],
-                                '経路': line.split('】')[1].split('km')[0].split()[-2],
-                                '距離(km)': float(line.split('km')[0].split()[-1]),
+                                '経路': route,
+                                '距離(km)': distance,
                             })
                     
                     # 表示用のDataFrame作成
