@@ -97,42 +97,45 @@ def create_expense_table_image(df, name):
     return img_byte_arr
 
 def parse_expense_data(text):
-    # データの解析
+    """テキストデータを解析してDataFrameを作成"""
     lines = text.strip().split('\n')
     data = []
+    entry_id = 1
     
     for line in lines:
-        if not line.strip():  # 空行をスキップ
+        if not line.strip() or '【ピノ】' not in line:
             continue
             
-        # タブまたはスペースで分割
-        parts = re.split(r'\t|\s{2,}', line.strip())
+        # 基本情報の抽出
+        match = re.search(r'【ピノ】\s*([^　\s]+(?:[ 　]+[^　\s]+)*)\s+(\d+/\d+)\s*\([月火水木金土日]\)', line)
+        if not match:
+            continue
+            
+        name = match.group(1).strip()
+        date = match.group(2)
         
-        # 必要なデータのみを抽出
-        if len(parts) >= 3:  # 日付、経路、距離の最小要件
-            date = parts[0].strip()
-            route = parts[1].strip()
-            try:
-                distance = float(parts[-1].strip())
-            except ValueError:
-                continue  # 距離の変換に失敗した行はスキップ
-                
-            if date and route and distance > 0:  # 有効なデータのみを追加
-                data.append({
-                    'date': date,
-                    'route': route,
-                    'distance': distance
-                })
+        # 経路と距離の抽出
+        route_start = line.find(')') + 1
+        km_match = re.search(r'(\d+\.?\d*)(?:km|㎞|ｋｍ|kｍ)', line[route_start:], re.IGNORECASE)
+        if not km_match:
+            continue
+            
+        distance = float(km_match.group(1))
+        route = line[route_start:line.find(km_match.group())].strip()
+        
+        data.append({
+            'id': entry_id,
+            'name': name,
+            'date': date,
+            'route': route,
+            'distance': distance
+        })
+        entry_id += 1
     
-    # DataFrameを作成
-    df = pd.DataFrame(data)
-    if not df.empty:
-        df['name'] = df['route'].apply(lambda x: x.split('→')[0].split('⇒')[0].split('様')[0].strip())
-        df['id'] = range(1, len(df) + 1)
-    
-    return df
+    return pd.DataFrame(data)
 
 def create_expense_report(person_data):
+    """個人の精算書データを作成"""
     # データフレームの作成
     expense_data = pd.DataFrame({
         '日付': person_data['date'],
@@ -269,6 +272,7 @@ def capture_streamlit_table():
     return screenshot
 
 def export_to_excel(df, unique_names):
+    """精算書をExcelファイルとして出力"""
     output = BytesIO()
     workbook = openpyxl.Workbook()
     
@@ -300,10 +304,6 @@ def export_to_excel(df, unique_names):
         worksheet.column_dimensions['E'].width = 15  # 運転手当
         worksheet.column_dimensions['F'].width = 15  # 合計
         
-        # 行の高さを設定
-        worksheet.row_dimensions[1].height = 45  # タイトル行
-        worksheet.row_dimensions[2].height = 60  # ヘッダー行
-        
         # タイトルを追加
         title = f"{name}様 2025年1月 社内通貨（交通費）清算額"
         worksheet['A1'] = title
@@ -329,8 +329,14 @@ def export_to_excel(df, unique_names):
                 cell = worksheet.cell(row=row_idx, column=col_idx)
                 cell.value = value
                 cell.font = openpyxl.styles.Font(size=11)
+                
+                # 数値の書式設定
                 if col_idx in [3, 4, 5, 6]:  # 数値列
                     cell.alignment = openpyxl.styles.Alignment(horizontal='right', vertical='center')
+                    if col_idx == 3:  # 距離
+                        cell.number_format = '#,##0.0'
+                    else:  # 金額
+                        cell.number_format = '#,##0'
                 else:
                     cell.alignment = openpyxl.styles.Alignment(horizontal='left', vertical='center')
         
