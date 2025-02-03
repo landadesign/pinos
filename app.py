@@ -380,8 +380,8 @@ def export_to_excel(df, unique_names):
         worksheet.column_dimensions['F'].width = 15  # 合計
         
         # 行の高さを設定
-        worksheet.row_dimensions[1].height = 30  # タイトル行
-        worksheet.row_dimensions[2].height = 25  # ヘッダー行
+        worksheet.row_dimensions[1].height = 45  # タイトル行
+        worksheet.row_dimensions[2].height = 30  # ヘッダー行
         
         # タイトルを追加
         title = f"{name}様 2025年1月 社内通貨（交通費）清算額"
@@ -409,7 +409,7 @@ def export_to_excel(df, unique_names):
         # データの書き込み
         for row_idx, row in enumerate(expense_data.values, 3):
             # データ行の高さを設定
-            worksheet.row_dimensions[row_idx].height = 20
+            worksheet.row_dimensions[row_idx].height = 30  # データ行
             
             for col_idx, value in enumerate(row, 1):
                 cell = worksheet.cell(row=row_idx, column=col_idx)
@@ -434,7 +434,7 @@ def export_to_excel(df, unique_names):
         
         # 注釈を追加
         note_row = len(expense_data) + 4
-        worksheet.row_dimensions[note_row].height = 20  # 注釈行の高さ
+        worksheet.row_dimensions[note_row].height = 30  # 注釈行
         note_cell = worksheet[f'A{note_row}']
         note_cell.value = "※2025年1月分給与にて清算しました。"
         worksheet.merge_cells(f'A{note_row}:F{note_row}')
