@@ -187,112 +187,44 @@ def main():
     with col1:
         if st.button("データを解析"):
             if input_text:
-                # 元のデータ順を保持するために入力テキストを行ごとに分割
-                input_lines = [line.strip() for line in input_text.split('\n') if line.strip()]
-                
-                # データを解析
                 df = parse_expense_data(input_text)
                 st.session_state['df'] = df
                 st.success("データを解析しました！")
                 
                 # データ一覧の表示
                 if not df.empty:
-                    st.markdown("""
-                    <h2 style='text-align: center; color: #1f77b4; padding: 20px 0;'>
-                        交通費データ一覧
-                    </h2>
-                    """, unsafe_allow_html=True)
+                    st.write("### 交通費データ一覧")
                     
                     # 表示用のデータを作成
                     display_rows = []
-                    i = 0
-                    while i < len(input_lines):
-                        line = input_lines[i]
-                        if line.startswith('【ピノ】'):
-                            # 距離の抽出と変換
-                            distance_str = line.split()[-1]
-                            distance_str = distance_str.replace('ｋｍ', '').replace('km', '')
-                            try:
-                                distance = float(distance_str)
-                            except ValueError:
-                                # 次の行に距離がある可能性をチェック
-                                if i + 1 < len(input_lines):
-                                    next_line = input_lines[i + 1]
-                                    if not next_line.startswith('【ピノ】'):
-                                        try:
-                                            distance = float(next_line.replace('ｋｍ', '').replace('km', ''))
-                                            i += 1  # 次の行を処理済みとしてスキップ
-                                        except ValueError:
-                                            distance = 0.0
-                                else:
-                                    distance = 0.0
-                                
-                            # 経路の抽出
-                            route_parts = line.split('】')[1].split()
-                            route = ' '.join(route_parts[2:-1]) if distance > 0 else ' '.join(route_parts[2:])
-                            
+                    for _, row in df.iterrows():
+                        for route in row['routes']:
                             display_rows.append({
-                                '入力データ': line,
-                                '担当者': line.split()[1],
-                                '日付': line.split()[2],
-                                '経路': route,
-                                '距離(km)': distance,
+                                '日付': row['date'],
+                                '担当者': row['name'],
+                                '経路': route['route'],
+                                '距離(km)': route['distance'],
+                                'No.': row.name + 1
                             })
-                        i += 1
                     
                     # 表示用のDataFrame作成
                     display_df = pd.DataFrame(display_rows)
-                    
-                    # データフレームを大きく表示し、スタイルを改善
                     st.dataframe(
-                        display_df[['入力データ', '担当者', '日付', '経路', '距離(km)']],
+                        display_df,
                         column_config={
-                            '入力データ': st.column_config.TextColumn(
-                                '入力データ',
-                                width=900,
-                                help="元の入力データ"
-                            ),
-                            '担当者': st.column_config.TextColumn(
-                                '担当者',
-                                width=200,
-                                help="担当者名"
-                            ),
-                            '日付': st.column_config.TextColumn(
-                                '日付',
-                                width=150,
-                                help="実施日"
-                            ),
-                            '経路': st.column_config.TextColumn(
-                                '経路',
-                                width=800,
-                                help="移動経路"
-                            ),
-                            '距離(km)': st.column_config.NumberColumn(
-                                '距離(km)',
-                                format="%.1f km",
-                                width=150,
-                                help="移動距離"
-                            )
+                            '日付': st.column_config.TextColumn('日付', width=100),
+                            '担当者': st.column_config.TextColumn('担当者', width=150),
+                            '経路': st.column_config.TextColumn('経路', width=400),
+                            '距離(km)': st.column_config.NumberColumn('距離(km)', format="%.1f", width=100),
+                            'No.': st.column_config.NumberColumn('No.', width=80)
                         },
-                        hide_index=True,
-                        height=800,
-                        use_container_width=True
+                        hide_index=True
                     )
                     
-                    # 合計距離の表示
-                    total_distance = display_df['距離(km)'].sum()
-                    st.markdown(f"""
-                    <div style='text-align: right; padding: 20px; background-color: #f0f2f6; border-radius: 5px; margin-top: 20px;'>
-                        <h3>合計距離: {total_distance:.1f} km</h3>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
                     # 精算書を表示するボタン
-                    st.markdown("<div style='padding: 20px 0;'>", unsafe_allow_html=True)
-                    if st.button("精算書を表示", type="primary"):
+                    if st.button("精算書を表示"):
                         st.session_state['show_expense_report'] = True
                         st.experimental_rerun()
-                    st.markdown("</div>", unsafe_allow_html=True)
 
     # 精算書の表示
     if st.session_state.get('show_expense_report', False) and 'df' in st.session_state:
