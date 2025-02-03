@@ -352,6 +352,9 @@ def export_to_excel(df, unique_names):
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         workbook = writer.book
         
+        # デフォルトシートの名前を取得
+        default_sheet_name = workbook.sheetnames[0]
+        
         for name in unique_names:
             # 担当者のデータを抽出して精算書を作成
             person_data = df[df['name'] == name].copy()
@@ -426,8 +429,9 @@ def export_to_excel(df, unique_names):
             note_cell.alignment = openpyxl.styles.Alignment(horizontal='left')
             note_cell.font = openpyxl.styles.Font(size=9)
         
-        # 最初のシートを削除（デフォルトで作成される空のシート）
-        workbook.remove(workbook['Sheet'])
+        # デフォルトシートを削除
+        if default_sheet_name in workbook.sheetnames:
+            workbook.remove(workbook[default_sheet_name])
     
     return output.getvalue()
 
