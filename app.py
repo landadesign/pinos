@@ -419,18 +419,6 @@ def main():
             
             # 精算書の表示
             if st.session_state.get('show_expense_report', False):
-                # Excelダウンロードボタン（一括）
-                excel_data = export_to_excel(df, sorted(df['name'].unique()))
-                st.download_button(
-                    label="精算書をExcelでダウンロード",
-                    data=excel_data,
-                    file_name=f'精算書_2025年1月.xlsx',
-                    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                    key="download_excel_button"
-                )
-                
-                st.markdown("---")
-                
                 # 担当者ごとのタブを作成
                 unique_names = sorted(df['name'].unique())
                 tabs = st.tabs([f"{name}様" for name in unique_names])
@@ -445,7 +433,7 @@ def main():
                         person_data = df[df['name'] == name].copy()
                         expense_data = create_expense_report(person_data)
                         
-                        # 精算書の表示（数値フォーマットを修正）
+                        # 精算書の表示
                         st.dataframe(
                             expense_data,
                             column_config={
@@ -482,34 +470,14 @@ def main():
                                 ※2025年1月分給与にて清算しました。
                             </div>
                         """, unsafe_allow_html=True)
-
-    # ダウンロードボタン
-    st.markdown("---")
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        # PNGダウンロードボタン
-        if st.button("表示中の精算書をPNGでダウンロード"):
-            png_data = create_png(expense_data, name)
-            st.download_button(
-                label="PNGをダウンロード",
-                data=png_data,
-                file_name=f'精算書_{name}様_{calculationDate}.png',
-                mime='image/png'
-            )
-    with col2:
-        # Excelダウンロードボタン（既存のコード）
-        output = BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            for name in unique_names:
-                person_data = df[df['name'] == name].copy()
-                expense_data = create_expense_report(person_data)
-                expense_data.to_excel(writer, sheet_name=f"{name}様", index=False)
         
-        excel_data = output.getvalue()
+        # ダウンロードボタン
+        st.markdown("---")
+        excel_data = export_to_excel(df, unique_names)
         st.download_button(
-            label="全ての精算書をExcelでダウンロード",
+            label="精算書をExcelでダウンロード",
             data=excel_data,
-            file_name=f'精算書_全担当者_{calculationDate}.xlsx',
+            file_name=f'精算書_2025年1月.xlsx',
             mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
 
