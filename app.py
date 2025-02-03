@@ -181,7 +181,7 @@ def main():
         if st.button("クリア"):
             st.session_state['df'] = None
             st.session_state['show_expense_report'] = False
-            st.experimental_rerun()
+            st.rerun()
     
     # データ一覧の表示
     if 'df' in st.session_state and st.session_state['df'] is not None:
@@ -220,7 +220,7 @@ def main():
             with col1:
                 if st.button("精算書を表示"):
                     st.session_state['show_expense_report'] = True
-                    st.experimental_rerun()
+                    st.rerun()
 
     # 精算書の表示
     if st.session_state.get('show_expense_report', False) and 'df' in st.session_state:
@@ -238,19 +238,13 @@ def main():
                 # 担当者のデータを抽出
                 person_data = df[df['name'] == name].copy()
                 
-                # 精算書データの作成
-                expense_data = create_expense_report(person_data)
-                
-                # 精算書の表示
+                # データフレームを表示
                 st.dataframe(
-                    expense_data,
+                    person_data,
                     column_config={
-                        '日付': st.column_config.TextColumn('日付', width=100),
-                        '経路': st.column_config.TextColumn('経路', width=400),
-                        '合計距離(km)': st.column_config.NumberColumn('合計距離(km)', format="%.1f", width=120),
-                        '交通費（距離×15P）(円)': st.column_config.NumberColumn('交通費（距離×15P）(円)', format="%d", width=150),
-                        '運転手当(円)': st.column_config.NumberColumn('運転手当(円)', format="%d", width=120),
-                        '合計(円)': st.column_config.NumberColumn('合計(円)', format="%d", width=120)
+                        'date': st.column_config.TextColumn('日付', width=100),
+                        'route': st.column_config.TextColumn('経路', width=400),
+                        'distance': st.column_config.NumberColumn('距離(km)', format="%.1f", width=100)
                     },
                     hide_index=True
                 )
