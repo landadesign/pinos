@@ -215,16 +215,9 @@ def main():
             if not df.empty:
                 st.write("### 交通費データ一覧")
                 
-                # 日付でソート用の一時的なデータフレームを作成
-                list_df = df.copy()
-                list_df['sort_date'] = list_df['date'].apply(
-                    lambda x: tuple(map(int, x.split('/'))) if isinstance(x, str) else (0, 0)
-                )
-                list_df = list_df.sort_values('sort_date')
-                
                 # 表示用のデータを作成
                 display_rows = []
-                for _, row in list_df.iterrows():
+                for _, row in df.iterrows():
                     for route in row['routes']:
                         display_rows.append({
                             '日付': row['date'],
@@ -248,6 +241,7 @@ def main():
                     hide_index=True
                 )
 
+            st.write("### 精算書")
             # タブの作成
             unique_names = sorted(df['name'].unique())
             tabs = st.tabs([f"{name}様" for name in unique_names])
