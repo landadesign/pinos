@@ -209,58 +209,45 @@ def main():
     if 'expense_data' in st.session_state:
         df = st.session_state['expense_data']
         
-        # 全体の解析一覧を表示
-        st.markdown("### 交通費データ一覧")
-        
-        # 一覧表示用のデータを作成
-        list_data = []
-        for _, row in df.iterrows():
-            for route in row['routes']:
-                list_data.append({
-                    '日付': row['date'],
-                    '担当者': row['name'],
-                    '経路': route['route'],
-                    '距離(km)': route['distance']
-                })
-        
-        # DataFrameを作成し、日付でソート
-        list_df = pd.DataFrame(list_data)
-        
-        # 日付を数値化してソート
-        def date_to_sortable(date_str):
-            month, day = map(int, date_str.split('/').map(Number))
-            return month * 100 + day
-            
-        list_df['sort_date'] = list_df['日付'].apply(date_to_sortable)
-        list_df = list_df.sort_values('sort_date', ascending=True)
-        list_df = list_df.drop('sort_date', axis=1)
-        
-        # カラム幅の設定
-        column_config = {
-            '日付': st.column_config.TextColumn(width='small'),
-            '担当者': st.column_config.TextColumn(width='small'),
-            '経路': st.column_config.TextColumn(width='large'),
-            '距離(km)': st.column_config.NumberColumn(
-                width='small',
-                format="%.1f",
-                help="移動距離"
-            )
-        }
-        
-        # データフレーム表示
-        st.dataframe(
-            list_df.fillna(''),  # Noneを空文字に置換
-            column_config=column_config,
-            use_container_width=True,
-            hide_index=True
-        )
-        
-        # 精算書作成ボタン
-        if st.button("精算書を作成"):
-            st.session_state['show_expense_report'] = True
-        
         # 精算書の表示
         if st.session_state.get('show_expense_report', False):
+            # データ一覧の表示
+            if not df.empty:
+                st.write("### 交通費データ一覧")
+                
+                # 日付でソート用の一時的なデータフレームを作成
+                list_df = df.copy()
+                list_df['sort_date'] = list_df['date'].apply(
+                    lambda x: tuple(map(int, x.split('/'))) if isinstance(x, str) else (0, 0)
+                )
+                list_df = list_df.sort_values('sort_date')
+                
+                # 表示用のデータを作成
+                display_rows = []
+                for _, row in list_df.iterrows():
+                    for route in row['routes']:
+                        display_rows.append({
+                            '日付': row['date'],
+                            '担当者': row['name'],
+                            '経路': route['route'],
+                            '距離(km)': route['distance'],
+                            'No.': row.name + 1
+                        })
+                
+                # 表示用のDataFrame作成
+                display_df = pd.DataFrame(display_rows)
+                st.dataframe(
+                    display_df,
+                    column_config={
+                        '日付': st.column_config.TextColumn('日付', width=100),
+                        '担当者': st.column_config.TextColumn('担当者', width=150),
+                        '経路': st.column_config.TextColumn('経路', width=400),
+                        '距離(km)': st.column_config.NumberColumn('距離(km)', format="%.1f", width=100),
+                        'No.': st.column_config.NumberColumn('No.', width=80)
+                    },
+                    hide_index=True
+                )
+
             # タブの作成
             unique_names = sorted(df['name'].unique())
             tabs = st.tabs([f"{name}様" for name in unique_names])
