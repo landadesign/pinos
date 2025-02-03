@@ -361,15 +361,15 @@ def export_to_excel(df, unique_names):
     return output.getvalue()
 
 def main():
-    # ページ設定を追加
+    # ページ設定
     st.set_page_config(
         page_title="PINO精算アプリケーション",
-        layout="wide"  # 画面を広く使用
+        layout="wide"
     )
     
     st.title("PINO精算アプリケーション")
     
-    # テキストエリアの表示（幅を調整）
+    # テキストエリアの表示
     input_text = st.text_area("精算データを貼り付けてください", height=200)
     
     # 解析ボタンとクリアボタン
@@ -390,7 +390,7 @@ def main():
     if 'df' in st.session_state and st.session_state['df'] is not None:
         df = st.session_state['df']
         if not df.empty:
-            # データ一覧の表示（幅を調整）
+            # データ一覧の表示
             st.markdown("""
             <h2 style='text-align: center; padding: 20px 0;'>
                 交通費データ一覧
@@ -400,14 +400,13 @@ def main():
             st.dataframe(
                 df,
                 column_config={
-                    'id': st.column_config.NumberColumn('No.', width=80),
-                    'date': st.column_config.TextColumn('日付', width=120),
-                    'name': st.column_config.TextColumn('担当者', width=150),
-                    'route': st.column_config.TextColumn('経路', width=600),  # 経路の幅を広げる
-                    'distance': st.column_config.NumberColumn('距離(km)', format="%.1f", width=120)
+                    'id': st.column_config.NumberColumn('No.', width=70),
+                    'date': st.column_config.TextColumn('日付', width=100),
+                    'name': st.column_config.TextColumn('担当者', width=120),
+                    'route': st.column_config.TextColumn('経路', width=500),
+                    'distance': st.column_config.NumberColumn('距離(km)', format="%.1f", width=100)
                 },
-                hide_index=True,
-                height=400  # 高さを指定
+                hide_index=True
             )
             
             # 精算書を表示するボタン
@@ -470,16 +469,16 @@ def main():
                                 ※2025年1月分給与にて清算しました。
                             </div>
                         """, unsafe_allow_html=True)
-        
-        # ダウンロードボタン
-        st.markdown("---")
-        excel_data = export_to_excel(df, unique_names)
-        st.download_button(
-            label="精算書をExcelでダウンロード",
-            data=excel_data,
-            file_name=f'精算書_2025年1月.xlsx',
-            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
+                
+                # ダウンロードボタン
+                st.markdown("---")
+                excel_data = export_to_excel(df, unique_names)  # unique_namesはここで定義済み
+                st.download_button(
+                    label="精算書をExcelでダウンロード",
+                    data=excel_data,
+                    file_name=f'精算書_2025年1月.xlsx',
+                    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                )
 
 if __name__ == "__main__":
     main()
