@@ -549,14 +549,15 @@ def main():
                             </div>
                         """, unsafe_allow_html=True)
                         
-                        # ダウンロードボタン
+                        # ダウンロードボタン（一括）
                         st.markdown("---")
                         excel_data = export_to_excel(df, unique_names)
                         st.download_button(
                             label="精算書をExcelでダウンロード",
                             data=excel_data,
                             file_name=f'精算書_2025年1月.xlsx',
-                            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                            key="download_all_excel"  # ユニークなキーを追加
                         )
 
 if __name__ == "__main__":
