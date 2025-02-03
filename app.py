@@ -209,7 +209,8 @@ def main():
                     while i < len(input_lines):
                         line = input_lines[i]
                         if line.startswith('【ピノ】'):
-                            # 距離の抽出と変換
+                            parts = line.split()
+                            # 経路の抽出と変換
                             distance_str = line.split()[-1]
                             distance_str = distance_str.replace('ｋｍ', '').replace('km', '')
                             try:
@@ -226,14 +227,14 @@ def main():
                                             distance = 0.0
                                 else:
                                     distance = 0.0
-                                
+                            
                             # 経路の抽出
                             route_parts = line.split('】')[1].split()
                             route = ' '.join(route_parts[2:-1]) if distance > 0 else ' '.join(route_parts[2:])
                             
                             display_rows.append({
-                                '日付': line.split()[2],
-                                '担当者': line.split()[1],
+                                '日付': parts[2],  # 日付
+                                '担当者': parts[1],  # 担当者名
                                 '経路': route,
                                 '距離(km)': distance,
                             })
@@ -243,35 +244,33 @@ def main():
                     display_df = pd.DataFrame(display_rows)
                     
                     # データフレームを表示（横長に調整）
-                    col1, col2 = st.columns([3, 1])  # 列の比率を3:1に設定
-                    with col1:
-                        st.dataframe(
-                            display_df,
-                            column_config={
-                                '日付': st.column_config.TextColumn(
-                                    '日付',
-                                    width=100
-                                ),
-                                '担当者': st.column_config.TextColumn(
-                                    '担当者',
-                                    width=120
-                                ),
-                                '経路': st.column_config.TextColumn(
-                                    '経路',
-                                    width=400
-                                ),
-                                '距離(km)': st.column_config.NumberColumn(
-                                    '距離(km)',
-                                    format="%.1f",
-                                    width=100
-                                )
-                            },
-                            hide_index=True,
-                            height=400,
-                            use_container_width=False
-                        )
+                    st.dataframe(
+                        display_df,
+                        column_config={
+                            '日付': st.column_config.TextColumn(
+                                '日付',
+                                width=120
+                            ),
+                            '担当者': st.column_config.TextColumn(
+                                '担当者',
+                                width=150
+                            ),
+                            '経路': st.column_config.TextColumn(
+                                '経路',
+                                width=600
+                            ),
+                            '距離(km)': st.column_config.NumberColumn(
+                                '距離(km)',
+                                format="%.1f",
+                                width=120
+                            )
+                        },
+                        hide_index=True,
+                        height=800,
+                        use_container_width=True
+                    )
                     
-                    # 合計距離の表示（シンプルに）
+                    # 合計距離の表示
                     total_distance = display_df['距離(km)'].sum()
                     st.markdown(f"""
                     <div style='text-align: right; padding: 10px; margin-top: 10px;'>
