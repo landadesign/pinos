@@ -357,7 +357,6 @@ def main():
     with col1:
         if st.button("データを解析"):
             if input_text:
-                # データを解析
                 df = parse_expense_data(input_text)
                 st.session_state['df'] = df
                 st.success("データを解析しました！")
@@ -367,17 +366,17 @@ def main():
             st.session_state['show_expense_report'] = False
             st.rerun()
     
-    # データ一覧の表示
+    # データ一覧と精算書の表示
     if 'df' in st.session_state and st.session_state['df'] is not None:
         df = st.session_state['df']
         if not df.empty:
+            # データ一覧の表示
             st.markdown("""
             <h2 style='text-align: center; padding: 20px 0;'>
                 交通費データ一覧
             </h2>
             """, unsafe_allow_html=True)
             
-            # データフレームを表示（入力順を維持）
             st.dataframe(
                 df,
                 column_config={
@@ -387,17 +386,8 @@ def main():
                     'route': st.column_config.TextColumn('経路', width=500),
                     'distance': st.column_config.NumberColumn('距離(km)', format="%.1f", width=100)
                 },
-                hide_index=True,
-                height=400
+                hide_index=True
             )
-            
-            # 合計距離の表示
-            total_distance = df['distance'].sum()
-            st.markdown(f"""
-            <div style='text-align: right; padding: 10px; margin-top: 10px;'>
-                <h3>合計距離 {total_distance:.1f} km</h3>
-            </div>
-            """, unsafe_allow_html=True)
             
             # 精算書を表示するボタン
             col1, col2 = st.columns([1, 5])
@@ -406,92 +396,70 @@ def main():
                     st.session_state['show_expense_report'] = True
                     st.rerun()
 
-    # 精算書の表示
-    if st.session_state.get('show_expense_report', False) and 'df' in st.session_state:
-        df = st.session_state['df']
-        
-        # 担当者ごとのタブを作成
-        unique_names = sorted(df['name'].unique())
-        tabs = st.tabs([f"{name}様" for name in unique_names])
-        
-        # 担当者ごとの精算書表示
-        for i, name in enumerate(unique_names):
-            with tabs[i]:
-                st.markdown(f"### {name}様 2024年12月25日～2025年1月 社内通貨（交通費）清算額")
+            # 精算書の表示
+            if st.session_state.get('show_expense_report', False):
+                # 担当者ごとのタブを作成
+                unique_names = sorted(df['name'].unique())
+                tabs = st.tabs([f"{name}様" for name in unique_names])
                 
-                # 担当者のデータを抽出
-                person_data = df[df['name'] == name].copy()
-                
-                # 精算書データの作成
-                expense_data = create_expense_report(person_data)
-                
-                # 精算書の表示
-                table = st.dataframe(
-                    expense_data,
-                    column_config={
-                        '日付': st.column_config.TextColumn('日付', width=100),
-                        '経路': st.column_config.TextColumn('経路', width=450),
-                        '合計距離(km)': st.column_config.NumberColumn(
-                            '合計距離(km)',
-                            format="%.1f",
-                            width=120
-                        ),
-                        '交通費（距離×15P）(円)': st.column_config.NumberColumn(
-                            '交通費（距離×15P）(円)',
-                            format="%d",
-                            width=180
-                        ),
-                        '運転手当(円)': st.column_config.NumberColumn(
-                            '運転手当(円)',
-                            format="%d",
-                            width=120
-                        ),
-                        '合計(円)': st.column_config.NumberColumn(
-                            '合計(円)',
-                            format="%d",
-                            width=120
-                        )
-                    },
-                    hide_index=True
-                )
-                
-                # 注釈表示
-                st.markdown("""
-                    <div style='margin-top: 15px; color: #666;'>
-                        ※2025年1月分給与にて清算しました。
-                    </div>
-                """, unsafe_allow_html=True)
-                
-                # ダウンロードボタン
-                st.markdown("---")
-                col1, col2 = st.columns([1, 1])
-                with col1:
-                    if st.button(f"{name}様の精算書を画像として保存", key=f"save_{name}"):
-                        screenshot = capture_streamlit_table()
-                        # BytesIOに変換
-                        img_byte_arr = BytesIO()
-                        screenshot.save(img_byte_arr, format='PNG')
-                        img_byte_arr = img_byte_arr.getvalue()
+                # 担当者ごとの精算書表示
+                for i, name in enumerate(unique_names):
+                    with tabs[i]:
+                        st.markdown(f"### {name}様 2024年12月25日～2025年1月 社内通貨（交通費）清算額")
                         
-                        st.download_button(
-                            label="画像をダウンロード",
-                            data=img_byte_arr,
-                            file_name=f'精算書_{name}様_{calculationDate}.png',
-                            mime='image/png'
+                        # 担当者のデータを抽出して精算書を作成
+                        person_data = df[df['name'] == name].copy()
+                        expense_data = create_expense_report(person_data)
+                        
+                        # 精算書の表示
+                        st.dataframe(
+                            expense_data,
+                            column_config={
+                                '日付': st.column_config.TextColumn('日付', width=100),
+                                '経路': st.column_config.TextColumn('経路', width=450),
+                                '合計距離(km)': st.column_config.NumberColumn(
+                                    '合計距離(km)',
+                                    format="%.1f",
+                                    width=120
+                                ),
+                                '交通費（距離×15P）(円)': st.column_config.NumberColumn(
+                                    '交通費（距離×15P）(円)',
+                                    format="%d",
+                                    width=180
+                                ),
+                                '運転手当(円)': st.column_config.NumberColumn(
+                                    '運転手当(円)',
+                                    format="%d",
+                                    width=120
+                                ),
+                                '合計(円)': st.column_config.NumberColumn(
+                                    '合計(円)',
+                                    format="%d",
+                                    width=120
+                                )
+                            },
+                            hide_index=True
                         )
-                with col2:
-                    # Excelダウンロードボタン
-                    output = BytesIO()
-                    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                        expense_data.to_excel(writer, sheet_name=f"{name}様", index=False)
-                    
-                    excel_data = output.getvalue()
-                    st.download_button(
-                        label="精算書をExcelでダウンロード",
-                        data=excel_data,
-                        file_name=f'精算書_{name}様_{calculationDate}.xlsx',
-                        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                    )
+                        
+                        # 注釈表示
+                        st.markdown("""
+                            <div style='margin-top: 15px; color: #666;'>
+                                ※2025年1月分給与にて清算しました。
+                            </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # Excelダウンロードボタン
+                        output = BytesIO()
+                        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                            expense_data.to_excel(writer, sheet_name=f"{name}様", index=False)
+                        
+                        excel_data = output.getvalue()
+                        st.download_button(
+                            label=f"{name}様の精算書をExcelでダウンロード",
+                            data=excel_data,
+                            file_name=f'精算書_{name}様_{calculationDate}.xlsx',
+                            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                        )
 
 if __name__ == "__main__":
     main()
