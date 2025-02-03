@@ -130,12 +130,7 @@ def parse_expense_data(text):
             entry_data['id'] = entry_id
             data.append(entry_data)
     
-    df = pd.DataFrame(data)
-    if not df.empty:
-        df['name'] = df['route'].apply(lambda x: x.split('→')[0].split('⇒')[0].split('様')[0].strip())
-        df = df.sort_values(['date', 'id'])
-    
-    return df
+    return pd.DataFrame(data)
 
 def process_entry(text):
     """個別のエントリーを解析"""
@@ -165,17 +160,12 @@ def process_entry(text):
     if not distance:
         return None
     
-    # 経路の抽出
-    route_start = text.find(')') + 1
-    route_end = text.find(str(distance))
-    if route_end == -1:
-        route_end = len(text)
-    
-    route = text[route_start:route_end].strip()
-    route = re.sub(r'\s+', ' ', route)  # 複数の空白を1つに
+    # 経路の抽出（日付の後ろから距離の前まで）
+    route_text = text[text.find(')')+1:text.find(str(distance))].strip()
+    route = re.sub(r'\s+', ' ', route_text)  # 複数の空白を1つに
     
     return {
-        'name': name,
+        'name': name,  # 【ピノ】の後の名前を使用
         'date': date,
         'route': route,
         'distance': distance
