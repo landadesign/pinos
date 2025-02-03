@@ -197,30 +197,29 @@ def main():
                     
                     # 表示用のデータを作成
                     display_rows = []
+                    entry_id = 1
                     for _, row in df.iterrows():
                         for route in row['routes']:
                             display_rows.append({
-                                'No.': row.name + 1,
+                                '入力データ': f"【ピノ】{row['name']} {row['date']}({row['day']}) {route['route']}{route['distance']}km",
                                 '担当者': row['name'],
                                 '日付': row['date'],
                                 '経路': route['route'],
-                                '距離(km)': route['distance']
+                                '距離(km)': route['distance'],
+                                'ID': entry_id
                             })
+                            entry_id += 1
                     
                     # 表示用のDataFrame作成
                     display_df = pd.DataFrame(display_rows)
                     
-                    # 日付でソート
-                    display_df['sort_date'] = display_df['日付'].apply(
-                        lambda x: tuple(map(int, x.split('/'))) if isinstance(x, str) else (0, 0)
-                    )
-                    display_df = display_df.sort_values(['sort_date', 'No.'])
-                    display_df = display_df.drop('sort_date', axis=1)
+                    # 入力順（ID順）でソート
+                    display_df = display_df.sort_values('ID')
                     
                     st.dataframe(
-                        display_df,
+                        display_df[['入力データ', '担当者', '日付', '経路', '距離(km)']],  # ID列は非表示
                         column_config={
-                            'No.': st.column_config.NumberColumn('No.', width=80),
+                            '入力データ': st.column_config.TextColumn('入力データ', width=500),
                             '担当者': st.column_config.TextColumn('担当者', width=150),
                             '日付': st.column_config.TextColumn('日付', width=100),
                             '経路': st.column_config.TextColumn('経路', width=400),
