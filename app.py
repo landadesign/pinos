@@ -101,38 +101,66 @@ def parse_expense_data(text):
     lines = text.replace('\r\n', '\n').split('\n')
     entries = []
     entry_id = 0
+    current_entry = None
     
     for line in lines:
         if '【ピノ】' in line:
-            try:
-                # 基本情報の抽出
-                parts = line.split('】')[1].strip().split()
-                name = parts[0]
-                date = parts[1]
-                
-                # 経路と距離の抽出
-                route_start = line.find(date) + len(date)
-                distance_match = re.search(r'(\d+\.?\d*)(?:km|㎞|ｋｍ|kｍ)', line)
-                
-                if distance_match:
-                    distance = float(distance_match.group(1))
-                    route_end = line.find(distance_match.group(0))
-                    route = line[route_start:route_end].strip()
-                    
-                    entry_id += 1
-                    entries.append({
-                        'id': entry_id,
-                        'name': name,
-                        'date': date,
-                        'route': route,
-                        'distance': distance
-                    })
-            except Exception as e:
-                print(f"Error parsing line: {line}")
-                print(f"Error: {str(e)}")
-                continue
+            # 前のエントリーがあれば保存
+            if current_entry:
+                entry_id += 1
+                current_entry['id'] = entry_id
+                entries.append(current_entry)
+            
+            # 新しいエントリーの開始
+            current_entry = {
+                'content': line,
+                'distance_found': False
+            }
+        elif current_entry and not current_entry['distance_found']:
+            # 距離が見つかるまで内容を追加
+            current_entry['content'] += ' ' + line
+            
+            # 距離のパターンをチェック
+            distance_match = re.search(r'(\d+\.?\d*)(?:km|㎞|ｋｍ|kｍ)', line)
+            if distance_match:
+                current_entry['distance_found'] = True
     
-    return pd.DataFrame(entries)
+    # 最後のエントリーを保存
+    if current_entry:
+        entry_id += 1
+        current_entry['id'] = entry_id
+        entries.append(current_entry)
+    
+    # エントリーの解析
+    parsed_entries = []
+    for entry in entries:
+        try:
+            content = entry['content']
+            parts = content.split('】')[1].strip().split()
+            name = parts[0]
+            date = parts[1]
+            
+            # 経路と距離の抽出
+            distance_match = re.search(r'(\d+\.?\d*)(?:km|㎞|ｋｍ|kｍ)', content)
+            if distance_match:
+                distance = float(distance_match.group(1))
+                route_end = content.find(distance_match.group(0))
+                route_start = content.find(date) + len(date)
+                route = content[route_start:route_end].strip()
+                
+                parsed_entries.append({
+                    'id': entry['id'],
+                    'name': name,
+                    'date': date,
+                    'route': route,
+                    'distance': distance
+                })
+        except Exception as e:
+            print(f"Error parsing entry: {content}")
+            print(f"Error: {str(e)}")
+            continue
+    
+    return pd.DataFrame(parsed_entries)
 
 def main():
     st.title("PINO精算アプリケーション")
