@@ -7,10 +7,14 @@ from datetime import datetime
 import io
 from PIL import Image, ImageDraw, ImageFont
 import re
+from io import BytesIO
 
 # 定数
 RATE_PER_KM = 15
 DAILY_ALLOWANCE = 200
+
+# 計算日付の設定
+calculationDate = datetime.now().strftime("%Y%m%d")
 
 def create_expense_table_image(df, name):
     # 画像サイズとフォント設定
@@ -303,7 +307,7 @@ def main():
                     expense_data,
                     column_config={
                         '日付': st.column_config.TextColumn('日付', width=100),
-                        '経路': st.column_config.TextColumn('経路', width=500),
+                        '経路': st.column_config.TextColumn('経路', width=450),
                         '合計距離(km)': st.column_config.NumberColumn(
                             '合計距離(km)',
                             format="%.1f",
@@ -312,7 +316,7 @@ def main():
                         '交通費（距離×15P）(円)': st.column_config.NumberColumn(
                             '交通費（距離×15P）(円)',
                             format="%d",
-                            width=150
+                            width=180  # 幅を広げました
                         ),
                         '運転手当(円)': st.column_config.NumberColumn(
                             '運転手当(円)',
@@ -335,23 +339,34 @@ def main():
                     </div>
                 """, unsafe_allow_html=True)
         
-        # 一括印刷ボタン
+        # ダウンロードボタン
         st.markdown("---")
         col1, col2 = st.columns([1, 1])
         with col1:
-            if st.button("表示中の精算書を印刷"):
-                st.markdown("""
-                <script>
-                    window.print();
-                </script>
-                """, unsafe_allow_html=True)
+            # CSVダウンロードボタン
+            csv = df.to_csv(index=False).encode('utf-8-sig')
+            st.download_button(
+                label="表示中の精算書をCSVでダウンロード",
+                data=csv,
+                file_name=f'精算書_{calculationDate}.csv',
+                mime='text/csv'
+            )
         with col2:
-            if st.button("全ての精算書を一括印刷"):
-                st.markdown("""
-                <script>
-                    window.print();
-                </script>
-                """, unsafe_allow_html=True)
+            # Excelダウンロードボタン
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                for name in unique_names:
+                    person_data = df[df['name'] == name].copy()
+                    expense_data = create_expense_report(person_data)
+                    expense_data.to_excel(writer, sheet_name=f"{name}様", index=False)
+            
+            excel_data = output.getvalue()
+            st.download_button(
+                label="全ての精算書をExcelでダウンロード",
+                data=excel_data,
+                file_name=f'精算書_全担当者_{calculationDate}.xlsx',
+                mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
 
 if __name__ == "__main__":
     main()
