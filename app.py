@@ -495,9 +495,21 @@ def main():
                 if st.button("精算書を表示"):
                     st.session_state['show_expense_report'] = True
                     st.rerun()
-
+            
             # 精算書の表示
             if st.session_state.get('show_expense_report', False):
+                # Excelダウンロードボタン（一括）
+                excel_data = export_to_excel(df, sorted(df['name'].unique()))
+                st.download_button(
+                    label="精算書をExcelでダウンロード",
+                    data=excel_data,
+                    file_name=f'精算書_2025年1月.xlsx',
+                    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    key="download_excel_button"
+                )
+                
+                st.markdown("---")
+                
                 # 担当者ごとのタブを作成
                 unique_names = sorted(df['name'].unique())
                 tabs = st.tabs([f"{name}様" for name in unique_names])
@@ -548,17 +560,6 @@ def main():
                                 ※2025年1月分給与にて清算しました。
                             </div>
                         """, unsafe_allow_html=True)
-                        
-                        # ダウンロードボタン（一括）
-                        st.markdown("---")
-                        excel_data = export_to_excel(df, unique_names)
-                        st.download_button(
-                            label="精算書をExcelでダウンロード",
-                            data=excel_data,
-                            file_name=f'精算書_2025年1月.xlsx',
-                            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                            key="download_all_excel"  # ユニークなキーを追加
-                        )
 
 if __name__ == "__main__":
     main()
