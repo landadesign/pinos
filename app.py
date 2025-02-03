@@ -201,7 +201,7 @@ def main():
                     for _, row in df.iterrows():
                         for route in row['routes']:
                             display_rows.append({
-                                '入力データ': f"【ピノ】{row['name']} {row['date']}({row['day']}) {route['route']}{route['distance']}km",
+                                '入力データ': f"【ピノ】{row['name']} {row['date']} {route['route']}{route['distance']}km",
                                 '担当者': row['name'],
                                 '日付': row['date'],
                                 '経路': route['route'],
