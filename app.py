@@ -14,6 +14,7 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.units import mm
+import plotly.graph_objects as go
 
 # 定数
 RATE_PER_KM = 15
@@ -272,6 +273,35 @@ def create_pdf(expense_data, name):
     
     return buffer
 
+def create_png(expense_data, name):
+    # Plotlyでテーブルを作成
+    fig = go.Figure(data=[go.Table(
+        header=dict(
+            values=list(expense_data.columns),
+            fill_color='#2196F3',
+            align='center',
+            font=dict(color='white', size=12)
+        ),
+        cells=dict(
+            values=[expense_data[col] for col in expense_data.columns],
+            fill_color='white',
+            align=['center', 'left', 'right', 'right', 'right', 'right'],
+            font=dict(color='black', size=11)
+        )
+    )])
+    
+    # レイアウトの設定
+    fig.update_layout(
+        title=f"{name}様 2024年12月25日～2025年1月 社内通貨（交通費）清算額",
+        width=1200,
+        height=len(expense_data) * 30 + 150,
+        margin=dict(t=50, l=50, r=50, b=50)
+    )
+    
+    # PNGとして保存
+    img_bytes = fig.to_image(format="png", scale=2)
+    return img_bytes
+
 def main():
     st.title("PINO精算アプリケーション")
     
@@ -392,14 +422,14 @@ def main():
         st.markdown("---")
         col1, col2 = st.columns([1, 1])
         with col1:
-            # PDFダウンロードボタン
-            if st.button("表示中の精算書をPDFでダウンロード"):
-                pdf_buffer = create_pdf(expense_data, name)
+            # PNGダウンロードボタン
+            if st.button("表示中の精算書をPNGでダウンロード"):
+                png_bytes = create_png(expense_data, name)
                 st.download_button(
-                    label="PDFをダウンロード",
-                    data=pdf_buffer.getvalue(),
-                    file_name=f'精算書_{name}様_{calculationDate}.pdf',
-                    mime='application/pdf'
+                    label="PNGをダウンロード",
+                    data=png_bytes,
+                    file_name=f'精算書_{name}様_{calculationDate}.png',
+                    mime='image/png'
                 )
         with col2:
             # Excelダウンロードボタン
