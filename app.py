@@ -133,15 +133,15 @@ def parse_expense_data(text):
     return df
 
 def create_expense_report(person_data):
-    # データフレームの作成（空の行を含まない）
+    # データフレームの作成
     expense_data = pd.DataFrame({
         '日付': person_data['date'],
         '経路': person_data['route'],
         '合計距離(km)': person_data['distance'].round(1),
         '交通費（距離×15P）(円)': (person_data['distance'] * 15).round().astype(int),
-        '運転手当(円)': 500,  # 全ての行に500円を設定
+        '運転手当(円)': 500,
         '合計(円)': (person_data['distance'] * 15 + 500).round().astype(int)
-    }).dropna()  # 空の行を削除
+    })
     
     # 合計行の追加
     total_row = pd.DataFrame({
@@ -470,22 +470,22 @@ def main():
                                 ),
                                 '交通費（距離×15P）(円)': st.column_config.NumberColumn(
                                     '交通費（距離×15P）(円)',
-                                    format="%.0f",  # フォーマットを修正
+                                    format="%.0f",
                                     width=200
                                 ),
                                 '運転手当(円)': st.column_config.NumberColumn(
                                     '運転手当(円)',
-                                    format="%.0f",  # フォーマットを修正
+                                    format="%.0f",
                                     width=150
                                 ),
                                 '合計(円)': st.column_config.NumberColumn(
                                     '合計(円)',
-                                    format="%.0f",  # フォーマットを修正
+                                    format="%.0f",
                                     width=150
                                 )
                             },
                             hide_index=True,
-                            height=400  # 高さを指定
+                            height=400
                         )
                         
                         # 注釈表示
