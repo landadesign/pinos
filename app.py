@@ -357,17 +357,22 @@ def export_to_excel(df, unique_names):
             cell.alignment = openpyxl.styles.Alignment(horizontal='center', vertical='center')
             cell.fill = openpyxl.styles.PatternFill(start_color='E0E0E0', end_color='E0E0E0', fill_type='solid')
         
-        # データの書き込み
+        # データの書き込み（金額の桁区切りを追加）
         for row_idx, row in enumerate(expense_data.values, 3):
-            # データ行の高さを設定
-            worksheet.row_dimensions[row_idx].height = 30  # データ行
+            worksheet.row_dimensions[row_idx].height = 30
             
             for col_idx, value in enumerate(row, 1):
                 cell = worksheet.cell(row=row_idx, column=col_idx)
                 cell.value = value
-                # 数値の右寄せ、文字列の左寄せ
+                cell.font = openpyxl.styles.Font(size=11)
+                
+                # 数値の書式設定
                 if col_idx in [3, 4, 5, 6]:  # 数値列
                     cell.alignment = openpyxl.styles.Alignment(horizontal='right', vertical='center')
+                    if col_idx == 3:  # 距離
+                        cell.number_format = '#,##0.0'
+                    else:  # 金額
+                        cell.number_format = '#,##0'  # 桁区切りを追加
                 else:
                     cell.alignment = openpyxl.styles.Alignment(horizontal='left', vertical='center')
         
