@@ -98,41 +98,88 @@ def create_expense_table_image(df, name):
 
 def parse_expense_data(text):
     """テキストデータを解析してDataFrameを作成"""
-    lines = text.strip().split('\n')
+    lines = text.replace('\r\n', '\n').split('\n')
     data = []
     entry_id = 1
+    current_entry = []
     
     for line in lines:
-        if not line.strip() or '【ピノ】' not in line:
+        line = line.strip()
+        if not line:
             continue
             
-        # 基本情報の抽出
-        match = re.search(r'【ピノ】\s*([^　\s]+(?:[ 　]+[^　\s]+)*)\s+(\d+/\d+)\s*\([月火水木金土日]\)', line)
-        if not match:
-            continue
-            
-        name = match.group(1).strip()
-        date = match.group(2)
-        
-        # 経路と距離の抽出
-        route_start = line.find(')') + 1
-        km_match = re.search(r'(\d+\.?\d*)(?:km|㎞|ｋｍ|kｍ)', line[route_start:], re.IGNORECASE)
-        if not km_match:
-            continue
-            
-        distance = float(km_match.group(1))
-        route = line[route_start:line.find(km_match.group())].strip()
-        
-        data.append({
-            'id': entry_id,
-            'name': name,
-            'date': date,
-            'route': route,
-            'distance': distance
-        })
-        entry_id += 1
+        # 新しいエントリーの開始を検出
+        if '【ピノ】' in line:
+            # 前のエントリーを処理
+            if current_entry:
+                entry_data = process_entry(''.join(current_entry))
+                if entry_data:
+                    entry_data['id'] = entry_id
+                    data.append(entry_data)
+                    entry_id += 1
+            current_entry = [line]
+        else:
+            # 距離情報を含む行を追加
+            if any(pattern in line for pattern in ['km', '㎞', 'ｋｍ', 'kｍ']):
+                current_entry.append(line)
     
-    return pd.DataFrame(data)
+    # 最後のエントリーを処理
+    if current_entry:
+        entry_data = process_entry(''.join(current_entry))
+        if entry_data:
+            entry_data['id'] = entry_id
+            data.append(entry_data)
+    
+    df = pd.DataFrame(data)
+    if not df.empty:
+        df['name'] = df['route'].apply(lambda x: x.split('→')[0].split('⇒')[0].split('様')[0].strip())
+        df = df.sort_values(['date', 'id'])
+    
+    return df
+
+def process_entry(text):
+    """個別のエントリーを解析"""
+    # 基本情報の抽出（名前と日付）
+    name_date_match = re.search(r'【ピノ】\s*([^　\s]+(?:[ 　]+[^　\s]+)*)\s+(\d+/\d+)\s*\([月火水木金土日]\)', text)
+    if not name_date_match:
+        return None
+        
+    name = name_date_match.group(1).strip()
+    date = name_date_match.group(2)
+    
+    # 距離の抽出（複数のパターンに対応）
+    distance_patterns = [
+        r'(\d+\.?\d*)(?:km|㎞|ｋｍ|kｍ)',  # 基本パターン
+        r'距離[：:]\s*(\d+\.?\d*)',        # 「距離:」パターン
+        r'合計[：:]\s*(\d+\.?\d*)',        # 「合計:」パターン
+        r'往復[：:]\s*(\d+\.?\d*)',        # 「往復:」パターン
+    ]
+    
+    distance = None
+    for pattern in distance_patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            distance = float(match.group(1))
+            break
+    
+    if not distance:
+        return None
+    
+    # 経路の抽出
+    route_start = text.find(')') + 1
+    route_end = text.find(str(distance))
+    if route_end == -1:
+        route_end = len(text)
+    
+    route = text[route_start:route_end].strip()
+    route = re.sub(r'\s+', ' ', route)  # 複数の空白を1つに
+    
+    return {
+        'name': name,
+        'date': date,
+        'route': route,
+        'distance': distance
+    }
 
 def create_expense_report(person_data):
     """個人の精算書データを作成（日付ごとにグループ化）"""
