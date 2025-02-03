@@ -97,81 +97,51 @@ def create_expense_table_image(df, name):
     return img_byte_arr
 
 def parse_expense_data(text):
-    # 前処理：改行とスペースの正規化
-    lines = text.replace('\r\n', '\n').split('\n')
-    entries = []
-    entry_id = 0
-    current_entry = None
+    # データの解析
+    lines = text.strip().split('\n')
+    data = []
     
     for line in lines:
-        if '【ピノ】' in line:
-            # 前のエントリーがあれば保存
-            if current_entry:
-                entry_id += 1
-                current_entry['id'] = entry_id
-                entries.append(current_entry)
+        if not line.strip():  # 空行をスキップ
+            continue
             
-            # 新しいエントリーの開始
-            current_entry = {
-                'content': line,
-                'distance_found': False
-            }
-        elif current_entry and not current_entry['distance_found']:
-            # 距離が見つかるまで内容を追加
-            current_entry['content'] += ' ' + line
-            
-            # 距離のパターンをチェック
-            distance_match = re.search(r'(\d+\.?\d*)(?:km|㎞|ｋｍ|kｍ)', line)
-            if distance_match:
-                current_entry['distance_found'] = True
-    
-    # 最後のエントリーを保存
-    if current_entry:
-        entry_id += 1
-        current_entry['id'] = entry_id
-        entries.append(current_entry)
-    
-    # エントリーの解析
-    parsed_entries = []
-    for entry in entries:
-        try:
-            content = entry['content']
-            parts = content.split('】')[1].strip().split()
-            name = parts[0]
-            date = parts[1]
-            
-            # 経路と距離の抽出
-            distance_match = re.search(r'(\d+\.?\d*)(?:km|㎞|ｋｍ|kｍ)', content)
-            if distance_match:
-                distance = float(distance_match.group(1))
-                route_end = content.find(distance_match.group(0))
-                route_start = content.find(date) + len(date)
-                route = content[route_start:route_end].strip()
+        # タブまたはスペースで分割
+        parts = re.split(r'\t|\s{2,}', line.strip())
+        
+        # 必要なデータのみを抽出
+        if len(parts) >= 3:  # 日付、経路、距離の最小要件
+            date = parts[0].strip()
+            route = parts[1].strip()
+            try:
+                distance = float(parts[-1].strip())
+            except ValueError:
+                continue  # 距離の変換に失敗した行はスキップ
                 
-                parsed_entries.append({
-                    'id': entry['id'],
-                    'name': name,
+            if date and route and distance > 0:  # 有効なデータのみを追加
+                data.append({
                     'date': date,
                     'route': route,
                     'distance': distance
                 })
-        except Exception as e:
-            print(f"Error parsing entry: {content}")
-            print(f"Error: {str(e)}")
-            continue
     
-    return pd.DataFrame(parsed_entries)
+    # DataFrameを作成
+    df = pd.DataFrame(data)
+    if not df.empty:
+        df['name'] = df['route'].apply(lambda x: x.split('→')[0].split('⇒')[0].split('様')[0].strip())
+        df['id'] = range(1, len(df) + 1)
+    
+    return df
 
 def create_expense_report(person_data):
-    # データフレームの作成時に数値を整数型に変換
+    # データフレームの作成（空の行を含まない）
     expense_data = pd.DataFrame({
         '日付': person_data['date'],
         '経路': person_data['route'],
         '合計距離(km)': person_data['distance'].round(1),
         '交通費（距離×15P）(円)': (person_data['distance'] * 15).round().astype(int),
-        '運転手当(円)': pd.Series([500] * len(person_data), dtype=int),
+        '運転手当(円)': 500,  # 全ての行に500円を設定
         '合計(円)': (person_data['distance'] * 15 + 500).round().astype(int)
-    })
+    }).dropna()  # 空の行を削除
     
     # 合計行の追加
     total_row = pd.DataFrame({
