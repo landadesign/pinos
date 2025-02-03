@@ -179,6 +179,9 @@ def parse_expense_data(text):
 def main():
     st.title("PINO精算アプリケーション")
     
+    # ページ全体の幅を広げる設定
+    st.set_page_config(layout="wide")
+    
     # テキストエリアの表示
     input_text = st.text_area("精算データを貼り付けてください", height=200)
     
@@ -243,14 +246,15 @@ def main():
                     st.dataframe(
                         display_df[['入力データ', '担当者', '日付', '経路', '距離(km)']],
                         column_config={
-                            '入力データ': st.column_config.TextColumn('入力データ', width=600),
+                            '入力データ': st.column_config.TextColumn('入力データ', width=800),  # 幅を増加
                             '担当者': st.column_config.TextColumn('担当者', width=200),
                             '日付': st.column_config.TextColumn('日付', width=150),
-                            '経路': st.column_config.TextColumn('経路', width=500),
+                            '経路': st.column_config.TextColumn('経路', width=700),  # 幅を増加
                             '距離(km)': st.column_config.NumberColumn('距離(km)', format="%.1f", width=150)
                         },
                         hide_index=True,
-                        height=600  # 表の高さを大きく
+                        height=800,  # 高さを増加
+                        use_container_width=True  # コンテナの幅いっぱいに表示
                     )
                     
                     # 精算書を表示するボタン
