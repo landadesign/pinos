@@ -429,9 +429,15 @@ def export_to_excel(df, unique_names):
     return output.getvalue()
 
 def main():
+    # ページ設定を追加
+    st.set_page_config(
+        page_title="PINO精算アプリケーション",
+        layout="wide"  # 画面を広く使用
+    )
+    
     st.title("PINO精算アプリケーション")
     
-    # テキストエリアの表示
+    # テキストエリアの表示（幅を調整）
     input_text = st.text_area("精算データを貼り付けてください", height=200)
     
     # 解析ボタンとクリアボタン
@@ -452,7 +458,7 @@ def main():
     if 'df' in st.session_state and st.session_state['df'] is not None:
         df = st.session_state['df']
         if not df.empty:
-            # データ一覧の表示
+            # データ一覧の表示（幅を調整）
             st.markdown("""
             <h2 style='text-align: center; padding: 20px 0;'>
                 交通費データ一覧
@@ -462,13 +468,14 @@ def main():
             st.dataframe(
                 df,
                 column_config={
-                    'id': st.column_config.NumberColumn('No.', width=70),
-                    'date': st.column_config.TextColumn('日付', width=100),
-                    'name': st.column_config.TextColumn('担当者', width=120),
-                    'route': st.column_config.TextColumn('経路', width=500),
-                    'distance': st.column_config.NumberColumn('距離(km)', format="%.1f", width=100)
+                    'id': st.column_config.NumberColumn('No.', width=80),
+                    'date': st.column_config.TextColumn('日付', width=120),
+                    'name': st.column_config.TextColumn('担当者', width=150),
+                    'route': st.column_config.TextColumn('経路', width=600),  # 経路の幅を広げる
+                    'distance': st.column_config.NumberColumn('距離(km)', format="%.1f", width=120)
                 },
-                hide_index=True
+                hide_index=True,
+                height=400  # 高さを指定
             )
             
             # 精算書を表示するボタン
@@ -506,34 +513,35 @@ def main():
                         person_data = df[df['name'] == name].copy()
                         expense_data = create_expense_report(person_data)
                         
-                        # 精算書の表示
+                        # 精算書の表示（幅を調整）
                         st.dataframe(
                             expense_data,
                             column_config={
-                                '日付': st.column_config.TextColumn('日付', width=100),
-                                '経路': st.column_config.TextColumn('経路', width=450),
+                                '日付': st.column_config.TextColumn('日付', width=120),
+                                '経路': st.column_config.TextColumn('経路', width=600),  # 経路の幅を広げる
                                 '合計距離(km)': st.column_config.NumberColumn(
                                     '合計距離(km)',
                                     format="%.1f",
-                                    width=120
+                                    width=150
                                 ),
                                 '交通費（距離×15P）(円)': st.column_config.NumberColumn(
                                     '交通費（距離×15P）(円)',
                                     format="%d",
-                                    width=180
+                                    width=200
                                 ),
                                 '運転手当(円)': st.column_config.NumberColumn(
                                     '運転手当(円)',
                                     format="%d",
-                                    width=120
+                                    width=150
                                 ),
                                 '合計(円)': st.column_config.NumberColumn(
                                     '合計(円)',
                                     format="%d",
-                                    width=120
+                                    width=150
                                 )
                             },
-                            hide_index=True
+                            hide_index=True,
+                            height=400  # 高さを指定
                         )
                         
                         # 注釈表示
