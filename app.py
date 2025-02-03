@@ -269,10 +269,16 @@ def main():
             for i, name in enumerate(unique_names):
                 with tabs[i]:
                     # タイトル表示
-                    st.markdown(f"### {name}様 2025年1月　交通費清算額")
+                    st.markdown(f"### {name}様 2024年12月25日～2025年1月　社内通貨（交通費）清算額")
                     
                     # データの準備
-                    person_data = df[df['name'] == name].sort_values('date').copy()
+                    person_data = df[df['name'] == name].copy()
+                    
+                    # 日付でソート
+                    person_data['sort_date'] = person_data['date'].apply(
+                        lambda x: tuple(map(int, x.split('/'))) if x else (0, 0)
+                    )
+                    person_data = person_data.sort_values('sort_date')
                     
                     # 日付ごとのデータをグループ化
                     daily_data = {}
@@ -305,14 +311,14 @@ def main():
                             row_data = {
                                 '日付': date,
                                 '経路': route['route'],
-                                '合計\n距離\n(km)': route['distance'],
+                                '合計\n距離\n(km)': route['distance'] if route['distance'] else '',
                                 '交通費\n(距離×15P)\n(円)': '',
                                 '運転\n手当\n(円)': '',
                                 '合計\n(円)': ''
                             }
                             display_rows.append(row_data)
                         
-                        # 日ごとの合計行を追加
+                        # 日ごとの合計行を更新
                         total_transport = int(day_data['total_distance'] * 15)
                         daily_total = total_transport + 200
                         
