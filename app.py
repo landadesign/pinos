@@ -21,6 +21,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import pyautogui
 import time
+import openpyxl
 
 # 定数
 RATE_PER_KM = 15
@@ -405,7 +406,8 @@ def main():
                 # 担当者ごとの精算書表示
                 for i, name in enumerate(unique_names):
                     with tabs[i]:
-                        st.markdown(f"### {name}様 2024年12月25日～2025年1月 社内通貨（交通費）清算額")
+                        title = f"{name}様 2025年1月 社内通貨（交通費）清算額"
+                        st.markdown(f"### {title}")
                         
                         # 担当者のデータを抽出して精算書を作成
                         person_data = df[df['name'] == name].copy()
@@ -451,13 +453,38 @@ def main():
                         # Excelダウンロードボタン
                         output = BytesIO()
                         with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                            expense_data.to_excel(writer, sheet_name=f"{name}様", index=False)
+                            # タイトル行を追加
+                            workbook = writer.book
+                            worksheet = workbook.create_sheet(f"{name}様")
+                            worksheet.title = f"{name}様"
+                            
+                            # タイトルを追加
+                            worksheet['A1'] = title
+                            worksheet.merge_cells('A1:F1')  # タイトルを結合
+                            title_cell = worksheet['A1']
+                            title_cell.alignment = openpyxl.styles.Alignment(horizontal='center')
+                            title_cell.font = openpyxl.styles.Font(size=14, bold=True)
+                            
+                            # データを2行目から書き込み
+                            for col_idx, col_name in enumerate(expense_data.columns, 1):
+                                cell = worksheet.cell(row=2, column=col_idx)
+                                cell.value = col_name
+                                cell.font = openpyxl.styles.Font(bold=True)
+                            
+                            for row_idx, row in enumerate(expense_data.values, 3):
+                                for col_idx, value in enumerate(row, 1):
+                                    worksheet.cell(row=row_idx, column=col_idx, value=value)
+                            
+                            # 注釈を追加
+                            note_row = len(expense_data) + 3
+                            worksheet[f'A{note_row}'] = "※2025年1月分給与にて清算しました。"
+                            worksheet.merge_cells(f'A{note_row}:F{note_row}')
                         
                         excel_data = output.getvalue()
                         st.download_button(
                             label=f"{name}様の精算書をExcelでダウンロード",
                             data=excel_data,
-                            file_name=f'精算書_{name}様_{calculationDate}.xlsx',
+                            file_name=f'精算書_{name}様_2025年1月.xlsx',
                             mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
                         )
 
