@@ -1,12 +1,12 @@
+from streamlit import set_page_config
+set_page_config(layout="wide")
+
 import streamlit as st
 import pandas as pd
 from datetime import datetime
 import io
 from PIL import Image, ImageDraw, ImageFont
 import re
-
-# ページ設定を最初に行う
-st.set_page_config(layout="wide")
 
 # 定数
 RATE_PER_KM = 15
