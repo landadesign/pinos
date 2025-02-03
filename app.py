@@ -135,15 +135,24 @@ def parse_expense_data(text):
     return pd.DataFrame(data)
 
 def create_expense_report(person_data):
-    """個人の精算書データを作成"""
+    """個人の精算書データを作成（日付ごとにグループ化）"""
+    # 日付でグループ化して集計
+    daily_data = person_data.groupby('date').agg({
+        'route': lambda x: '\n'.join(x),
+        'distance': 'sum'
+    }).reset_index()
+    
+    # 日付順にソート
+    daily_data = daily_data.sort_values('date')
+    
     # データフレームの作成
     expense_data = pd.DataFrame({
-        '日付': person_data['date'],
-        '経路': person_data['route'],
-        '合計距離(km)': person_data['distance'].round(1),
-        '交通費（距離×15P）(円)': (person_data['distance'] * 15).round().astype(int),
-        '運転手当(円)': 500,
-        '合計(円)': (person_data['distance'] * 15 + 500).round().astype(int)
+        '日付': daily_data['date'],
+        '経路': daily_data['route'],
+        '合計距離(km)': daily_data['distance'].round(1),
+        '交通費（距離×15P）(円)': (daily_data['distance'] * 15).round().astype(int),
+        '運転手当(円)': 200,  # 1日200円に変更
+        '合計(円)': (daily_data['distance'] * 15 + 200).round().astype(int)
     })
     
     # 合計行の追加
@@ -300,12 +309,12 @@ def export_to_excel(df, unique_names):
         worksheet.column_dimensions['A'].width = 15  # 日付
         worksheet.column_dimensions['B'].width = 50  # 経路
         worksheet.column_dimensions['C'].width = 15  # 合計距離
-        worksheet.column_dimensions['D'].width = 20  # 交通費
+        worksheet.column_dimensions['D'].width = 25  # 交通費
         worksheet.column_dimensions['E'].width = 15  # 運転手当
         worksheet.column_dimensions['F'].width = 15  # 合計
         
         # タイトルを追加
-        title = f"{name}様 2025年1月 社内通貨（交通費）清算額"
+        title = f"{name}様 2024年12月25日～2025年1月 社内通貨（交通費）清算額"
         worksheet['A1'] = title
         worksheet.merge_cells('A1:F1')
         title_cell = worksheet['A1']
@@ -338,7 +347,7 @@ def export_to_excel(df, unique_names):
                     else:  # 金額
                         cell.number_format = '#,##0'
                 else:
-                    cell.alignment = openpyxl.styles.Alignment(horizontal='left', vertical='center')
+                    cell.alignment = openpyxl.styles.Alignment(horizontal='left', vertical='center', wrap_text=True)
         
         # 罫線の設定
         border = openpyxl.styles.Border(
