@@ -243,37 +243,39 @@ def main():
                     display_df = pd.DataFrame(display_rows)
                     
                     # データフレームを表示（横長に調整）
-                    st.dataframe(
-                        display_df,
-                        column_config={
-                            '日付': st.column_config.TextColumn(
-                                '日付',
-                                width=100
-                            ),
-                            '担当者': st.column_config.TextColumn(
-                                '担当者',
-                                width=120
-                            ),
-                            '経路': st.column_config.TextColumn(
-                                '経路',
-                                width=300
-                            ),
-                            '距離(km)': st.column_config.NumberColumn(
-                                '距離(km)',
-                                format="%.1f",
-                                width=100
-                            )
-                        },
-                        hide_index=True,
-                        height=400,  # 高さを縮小
-                        use_container_width=False  # 横幅を自動調整しない
-                    )
+                    col1, col2 = st.columns([3, 1])  # 列の比率を3:1に設定
+                    with col1:
+                        st.dataframe(
+                            display_df,
+                            column_config={
+                                '日付': st.column_config.TextColumn(
+                                    '日付',
+                                    width=100
+                                ),
+                                '担当者': st.column_config.TextColumn(
+                                    '担当者',
+                                    width=120
+                                ),
+                                '経路': st.column_config.TextColumn(
+                                    '経路',
+                                    width=400
+                                ),
+                                '距離(km)': st.column_config.NumberColumn(
+                                    '距離(km)',
+                                    format="%.1f",
+                                    width=100
+                                )
+                            },
+                            hide_index=True,
+                            height=400,
+                            use_container_width=False
+                        )
                     
-                    # 合計距離の表示
+                    # 合計距離の表示（シンプルに）
                     total_distance = display_df['距離(km)'].sum()
                     st.markdown(f"""
                     <div style='text-align: right; padding: 10px; margin-top: 10px;'>
-                        <h3>合計距離: {total_distance:.1f} km</h3>
+                        <h3>合計距離 {total_distance:.1f} km</h3>
                     </div>
                     """, unsafe_allow_html=True)
                     
