@@ -349,89 +349,92 @@ def capture_streamlit_table():
 
 def export_to_excel(df, unique_names):
     output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        workbook = writer.book
-        
-        # デフォルトシートの名前を取得
-        default_sheet_name = workbook.sheetnames[0]
-        
-        for name in unique_names:
-            # 担当者のデータを抽出して精算書を作成
-            person_data = df[df['name'] == name].copy()
-            expense_data = create_expense_report(person_data)
-            
-            # 新しいシートを作成
+    workbook = openpyxl.Workbook()
+    
+    # 最初のシートを使用
+    first_name = unique_names[0]
+    first_sheet = workbook.active
+    first_sheet.title = f"{first_name}様"
+    
+    # 全ての担当者のシートを作成
+    for name in unique_names:
+        if name == first_name:
+            worksheet = first_sheet
+        else:
             worksheet = workbook.create_sheet(f"{name}様")
-            
-            # A4サイズに合わせた列幅の設定（1単位 = 0.18mm）
-            worksheet.page_setup.paperSize = worksheet.PAPERSIZE_A4
-            worksheet.page_setup.orientation = worksheet.ORIENTATION_LANDSCAPE
-            
-            # 列幅の設定
-            worksheet.column_dimensions['A'].width = 15  # 日付
-            worksheet.column_dimensions['B'].width = 50  # 経路
-            worksheet.column_dimensions['C'].width = 15  # 合計距離
-            worksheet.column_dimensions['D'].width = 20  # 交通費
-            worksheet.column_dimensions['E'].width = 15  # 運転手当
-            worksheet.column_dimensions['F'].width = 15  # 合計
-            
-            # タイトルを追加
-            title = f"{name}様 2025年1月 社内通貨（交通費）清算額"
-            worksheet['A1'] = title
-            worksheet.merge_cells('A1:F1')
-            title_cell = worksheet['A1']
-            title_cell.alignment = openpyxl.styles.Alignment(horizontal='center')
-            title_cell.font = openpyxl.styles.Font(size=14, bold=True)
-            
-            # 余白の設定
-            worksheet.page_margins.left = 0.5
-            worksheet.page_margins.right = 0.5
-            worksheet.page_margins.top = 0.5
-            worksheet.page_margins.bottom = 0.5
-            
-            # ヘッダーの書き込み
-            headers = ['日付', '経路', '合計距離(km)', '交通費（距離×15P）(円)', '運転手当(円)', '合計(円)']
-            for col_idx, header in enumerate(headers, 1):
-                cell = worksheet.cell(row=2, column=col_idx)
-                cell.value = header
-                cell.font = openpyxl.styles.Font(bold=True)
-                cell.alignment = openpyxl.styles.Alignment(horizontal='center')
-                cell.fill = openpyxl.styles.PatternFill(start_color='E0E0E0', end_color='E0E0E0', fill_type='solid')
-            
-            # データの書き込み
-            for row_idx, row in enumerate(expense_data.values, 3):
-                for col_idx, value in enumerate(row, 1):
-                    cell = worksheet.cell(row=row_idx, column=col_idx)
-                    cell.value = value
-                    # 数値の右寄せ、文字列の左寄せ
-                    if col_idx in [3, 4, 5, 6]:  # 数値列
-                        cell.alignment = openpyxl.styles.Alignment(horizontal='right')
-                    else:
-                        cell.alignment = openpyxl.styles.Alignment(horizontal='left')
-            
-            # 罫線の設定
-            thin_border = openpyxl.styles.Border(
-                left=openpyxl.styles.Side(style='thin'),
-                right=openpyxl.styles.Side(style='thin'),
-                top=openpyxl.styles.Side(style='thin'),
-                bottom=openpyxl.styles.Side(style='thin')
-            )
-            
-            for row in worksheet.iter_rows(min_row=2, max_row=len(expense_data.values)+2, min_col=1, max_col=6):
-                for cell in row:
-                    cell.border = thin_border
-            
-            # 注釈を追加
-            note_row = len(expense_data) + 4
-            note_cell = worksheet[f'A{note_row}']
-            note_cell.value = "※2025年1月分給与にて清算しました。"
-            worksheet.merge_cells(f'A{note_row}:F{note_row}')
-            note_cell.alignment = openpyxl.styles.Alignment(horizontal='left')
-            note_cell.font = openpyxl.styles.Font(size=9)
         
-        # デフォルトシートを削除
-        if default_sheet_name in workbook.sheetnames:
-            workbook.remove(workbook[default_sheet_name])
+        # 担当者のデータを抽出して精算書を作成
+        person_data = df[df['name'] == name].copy()
+        expense_data = create_expense_report(person_data)
+        
+        # A4サイズに合わせた設定
+        worksheet.page_setup.paperSize = worksheet.PAPERSIZE_A4
+        worksheet.page_setup.orientation = worksheet.ORIENTATION_LANDSCAPE
+        
+        # 列幅の設定
+        worksheet.column_dimensions['A'].width = 15  # 日付
+        worksheet.column_dimensions['B'].width = 50  # 経路
+        worksheet.column_dimensions['C'].width = 15  # 合計距離
+        worksheet.column_dimensions['D'].width = 20  # 交通費
+        worksheet.column_dimensions['E'].width = 15  # 運転手当
+        worksheet.column_dimensions['F'].width = 15  # 合計
+        
+        # タイトルを追加
+        title = f"{name}様 2025年1月 社内通貨（交通費）清算額"
+        worksheet['A1'] = title
+        worksheet.merge_cells('A1:F1')
+        title_cell = worksheet['A1']
+        title_cell.alignment = openpyxl.styles.Alignment(horizontal='center')
+        title_cell.font = openpyxl.styles.Font(size=14, bold=True)
+        
+        # 余白の設定
+        worksheet.page_margins.left = 0.5
+        worksheet.page_margins.right = 0.5
+        worksheet.page_margins.top = 0.5
+        worksheet.page_margins.bottom = 0.5
+        
+        # ヘッダーの書き込み
+        headers = ['日付', '経路', '合計距離(km)', '交通費（距離×15P）(円)', '運転手当(円)', '合計(円)']
+        for col_idx, header in enumerate(headers, 1):
+            cell = worksheet.cell(row=2, column=col_idx)
+            cell.value = header
+            cell.font = openpyxl.styles.Font(bold=True)
+            cell.alignment = openpyxl.styles.Alignment(horizontal='center')
+            cell.fill = openpyxl.styles.PatternFill(start_color='E0E0E0', end_color='E0E0E0', fill_type='solid')
+        
+        # データの書き込み
+        for row_idx, row in enumerate(expense_data.values, 3):
+            for col_idx, value in enumerate(row, 1):
+                cell = worksheet.cell(row=row_idx, column=col_idx)
+                cell.value = value
+                # 数値の右寄せ、文字列の左寄せ
+                if col_idx in [3, 4, 5, 6]:  # 数値列
+                    cell.alignment = openpyxl.styles.Alignment(horizontal='right')
+                else:
+                    cell.alignment = openpyxl.styles.Alignment(horizontal='left')
+        
+        # 罫線の設定
+        thin_border = openpyxl.styles.Border(
+            left=openpyxl.styles.Side(style='thin'),
+            right=openpyxl.styles.Side(style='thin'),
+            top=openpyxl.styles.Side(style='thin'),
+            bottom=openpyxl.styles.Side(style='thin')
+        )
+        
+        for row in worksheet.iter_rows(min_row=2, max_row=len(expense_data.values)+2, min_col=1, max_col=6):
+            for cell in row:
+                cell.border = thin_border
+        
+        # 注釈を追加
+        note_row = len(expense_data) + 4
+        note_cell = worksheet[f'A{note_row}']
+        note_cell.value = "※2025年1月分給与にて清算しました。"
+        worksheet.merge_cells(f'A{note_row}:F{note_row}')
+        note_cell.alignment = openpyxl.styles.Alignment(horizontal='left')
+        note_cell.font = openpyxl.styles.Font(size=9)
+    
+    # ファイルを保存
+    workbook.save(output)
     
     return output.getvalue()
 
