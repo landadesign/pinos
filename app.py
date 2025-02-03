@@ -187,6 +187,10 @@ def main():
     with col1:
         if st.button("データを解析"):
             if input_text:
+                # 元のデータ順を保持するために入力テキストを行ごとに分割
+                input_lines = [line.strip() for line in input_text.split('\n') if line.strip()]
+                
+                # データを解析
                 df = parse_expense_data(input_text)
                 st.session_state['df'] = df
                 st.success("データを解析しました！")
@@ -197,27 +201,22 @@ def main():
                     
                     # 表示用のデータを作成
                     display_rows = []
-                    entry_id = 1
-                    for _, row in df.iterrows():
-                        for route in row['routes']:
+                    for line in input_lines:
+                        if line.startswith('【ピノ】'):
+                            # 入力データをそのまま表示用に保持
                             display_rows.append({
-                                '入力データ': f"【ピノ】{row['name']} {row['date']} {route['route']}{route['distance']}km",
-                                '担当者': row['name'],
-                                '日付': row['date'],
-                                '経路': route['route'],
-                                '距離(km)': route['distance'],
-                                'ID': entry_id
+                                '入力データ': line,
+                                '担当者': line.split()[1],
+                                '日付': line.split()[2],
+                                '経路': line.split('】')[1].split('km')[0].split()[-2],
+                                '距離(km)': float(line.split('km')[0].split()[-1]),
                             })
-                            entry_id += 1
                     
                     # 表示用のDataFrame作成
                     display_df = pd.DataFrame(display_rows)
                     
-                    # 入力順（ID順）でソート
-                    display_df = display_df.sort_values('ID')
-                    
                     st.dataframe(
-                        display_df[['入力データ', '担当者', '日付', '経路', '距離(km)']],  # ID列は非表示
+                        display_df[['入力データ', '担当者', '日付', '経路', '距離(km)']],
                         column_config={
                             '入力データ': st.column_config.TextColumn('入力データ', width=500),
                             '担当者': st.column_config.TextColumn('担当者', width=150),
