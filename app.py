@@ -197,11 +197,13 @@ def main():
                 
                 # データ一覧の表示
                 if not df.empty:
-                    st.write("### 交通費データ一覧")
+                    st.write("## 交通費データ一覧")
                     
                     # 表示用のデータを作成
                     display_rows = []
-                    for line in input_lines:
+                    i = 0
+                    while i < len(input_lines):
+                        line = input_lines[i]
                         if line.startswith('【ピノ】'):
                             # 距離の抽出と変換
                             distance_str = line.split()[-1]
@@ -209,11 +211,21 @@ def main():
                             try:
                                 distance = float(distance_str)
                             except ValueError:
-                                distance = 0.0
+                                # 次の行に距離がある可能性をチェック
+                                if i + 1 < len(input_lines):
+                                    next_line = input_lines[i + 1]
+                                    if not next_line.startswith('【ピノ】'):
+                                        try:
+                                            distance = float(next_line.replace('ｋｍ', '').replace('km', ''))
+                                            i += 1  # 次の行を処理済みとしてスキップ
+                                        except ValueError:
+                                            distance = 0.0
+                                else:
+                                    distance = 0.0
                                 
                             # 経路の抽出
                             route_parts = line.split('】')[1].split()
-                            route = ' '.join(route_parts[2:-1])  # 日付と距離を除いた部分
+                            route = ' '.join(route_parts[2:-1]) if distance > 0 else ' '.join(route_parts[2:])
                             
                             display_rows.append({
                                 '入力データ': line,
@@ -222,20 +234,23 @@ def main():
                                 '経路': route,
                                 '距離(km)': distance,
                             })
+                        i += 1
                     
                     # 表示用のDataFrame作成
                     display_df = pd.DataFrame(display_rows)
                     
+                    # データフレームを大きく表示
                     st.dataframe(
                         display_df[['入力データ', '担当者', '日付', '経路', '距離(km)']],
                         column_config={
-                            '入力データ': st.column_config.TextColumn('入力データ', width=500),
-                            '担当者': st.column_config.TextColumn('担当者', width=150),
-                            '日付': st.column_config.TextColumn('日付', width=100),
-                            '経路': st.column_config.TextColumn('経路', width=400),
-                            '距離(km)': st.column_config.NumberColumn('距離(km)', format="%.1f", width=100)
+                            '入力データ': st.column_config.TextColumn('入力データ', width=600),
+                            '担当者': st.column_config.TextColumn('担当者', width=200),
+                            '日付': st.column_config.TextColumn('日付', width=150),
+                            '経路': st.column_config.TextColumn('経路', width=500),
+                            '距離(km)': st.column_config.NumberColumn('距離(km)', format="%.1f", width=150)
                         },
-                        hide_index=True
+                        hide_index=True,
+                        height=600  # 表の高さを大きく
                     )
                     
                     # 精算書を表示するボタン
