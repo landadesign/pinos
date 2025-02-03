@@ -313,6 +313,10 @@ def export_to_excel(df, unique_names):
         worksheet.column_dimensions['E'].width = 15  # 運転手当
         worksheet.column_dimensions['F'].width = 15  # 合計
         
+        # 行の高さを設定
+        worksheet.row_dimensions[1].height = 45  # タイトル行
+        worksheet.row_dimensions[2].height = 60  # ヘッダー行
+        
         # タイトルを追加
         title = f"{name}様 2024年12月25日～2025年1月 社内通貨（交通費）清算額"
         worksheet['A1'] = title
@@ -332,7 +336,7 @@ def export_to_excel(df, unique_names):
         
         # データの書き込み
         for row_idx, row in enumerate(expense_data.values, 3):
-            worksheet.row_dimensions[row_idx].height = 30
+            worksheet.row_dimensions[row_idx].height = 30  # データ行の高さを30に設定
             
             for col_idx, value in enumerate(row, 1):
                 cell = worksheet.cell(row=row_idx, column=col_idx)
