@@ -4,8 +4,6 @@ from io import BytesIO
 from datetime import datetime
 import re
 import openpyxl
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 
 # 定数
 RATE_PER_KM = 15
