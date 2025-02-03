@@ -197,7 +197,11 @@ def main():
                 
                 # データ一覧の表示
                 if not df.empty:
-                    st.write("## 交通費データ一覧")
+                    st.markdown("""
+                    <h2 style='text-align: center; color: #1f77b4; padding: 20px 0;'>
+                        交通費データ一覧
+                    </h2>
+                    """, unsafe_allow_html=True)
                     
                     # 表示用のデータを作成
                     display_rows = []
@@ -239,25 +243,56 @@ def main():
                     # 表示用のDataFrame作成
                     display_df = pd.DataFrame(display_rows)
                     
-                    # データフレームを大きく表示
+                    # データフレームを大きく表示し、スタイルを改善
                     st.dataframe(
                         display_df[['入力データ', '担当者', '日付', '経路', '距離(km)']],
                         column_config={
-                            '入力データ': st.column_config.TextColumn('入力データ', width=800),
-                            '担当者': st.column_config.TextColumn('担当者', width=200),
-                            '日付': st.column_config.TextColumn('日付', width=150),
-                            '経路': st.column_config.TextColumn('経路', width=700),
-                            '距離(km)': st.column_config.NumberColumn('距離(km)', format="%.1f", width=150)
+                            '入力データ': st.column_config.TextColumn(
+                                '入力データ',
+                                width=900,
+                                help="元の入力データ"
+                            ),
+                            '担当者': st.column_config.TextColumn(
+                                '担当者',
+                                width=200,
+                                help="担当者名"
+                            ),
+                            '日付': st.column_config.TextColumn(
+                                '日付',
+                                width=150,
+                                help="実施日"
+                            ),
+                            '経路': st.column_config.TextColumn(
+                                '経路',
+                                width=800,
+                                help="移動経路"
+                            ),
+                            '距離(km)': st.column_config.NumberColumn(
+                                '距離(km)',
+                                format="%.1f km",
+                                width=150,
+                                help="移動距離"
+                            )
                         },
                         hide_index=True,
                         height=800,
                         use_container_width=True
                     )
                     
+                    # 合計距離の表示
+                    total_distance = display_df['距離(km)'].sum()
+                    st.markdown(f"""
+                    <div style='text-align: right; padding: 20px; background-color: #f0f2f6; border-radius: 5px; margin-top: 20px;'>
+                        <h3>合計距離: {total_distance:.1f} km</h3>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
                     # 精算書を表示するボタン
-                    if st.button("精算書を表示"):
+                    st.markdown("<div style='padding: 20px 0;'>", unsafe_allow_html=True)
+                    if st.button("精算書を表示", type="primary"):
                         st.session_state['show_expense_report'] = True
                         st.experimental_rerun()
+                    st.markdown("</div>", unsafe_allow_html=True)
 
     # 精算書の表示
     if st.session_state.get('show_expense_report', False) and 'df' in st.session_state:
