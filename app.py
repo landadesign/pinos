@@ -179,9 +179,6 @@ def parse_expense_data(text):
 def main():
     st.title("PINO精算アプリケーション")
     
-    # ページ全体の幅を広げる設定
-    st.set_page_config(layout="wide")
-    
     # テキストエリアの表示
     input_text = st.text_area("精算データを貼り付けてください", height=200)
     
