@@ -179,173 +179,132 @@ def parse_expense_data(text):
 def main():
     st.title("PINO精算アプリケーション")
     
-    # データ入力
-    if 'input_text' not in st.session_state:
-        st.session_state.input_text = ''
+    # テキストエリアの表示
+    input_text = st.text_area("精算データを貼り付けてください", height=200)
     
-    input_text = st.text_area("精算データを貼り付けてください", 
-                             value=st.session_state.input_text,
-                             height=200)
-    
-    col1, col2 = st.columns([1, 4])
+    # 解析ボタンとクリアボタン
+    col1, col2 = st.columns([1, 5])
     with col1:
-        analyze_button = st.button("データを解析")
-    with col2:
-        if 'expense_data' in st.session_state:
-            clear_button = st.button("クリア")
-            if clear_button:
-                st.session_state.clear()
-                st.session_state.input_text = ''
-                st.rerun()
-    
-    if analyze_button and input_text:
-        st.session_state.input_text = input_text
-        df = parse_expense_data(input_text)
-        if df is not None:
-            st.session_state['expense_data'] = df
-            st.success("データを解析しました！")
-    
-    # データ表示と精算書生成
-    if 'expense_data' in st.session_state:
-        df = st.session_state['expense_data']
-        
-        # 精算書の表示
-        if st.session_state.get('show_expense_report', False):
-            # データ一覧の表示
-            if not df.empty:
-                st.write("### 交通費データ一覧")
+        if st.button("データを解析"):
+            if input_text:
+                df = parse_expense_data(input_text)
+                st.session_state['df'] = df
+                st.session_state['show_expense_report'] = True
+                st.success("データを解析しました！")
                 
-                # 表示用のデータを作成
-                display_rows = []
-                for _, row in df.iterrows():
+                # 精算書を表示するボタン
+                if st.button("精算書を表示"):
+                    st.session_state['show_expense_report'] = True
+                    st.experimental_rerun()
+
+    # 精算書の表示
+    if st.session_state.get('show_expense_report', False) and 'df' in st.session_state:
+        df = st.session_state['df']
+        
+        # タブの作成
+        unique_names = sorted(df['name'].unique())
+        tabs = st.tabs([f"{name}様" for name in unique_names])
+        
+        # 担当者ごとの精算書表示
+        for i, name in enumerate(unique_names):
+            with tabs[i]:
+                # タイトル表示
+                st.markdown(f"### {name}様 2024年12月25日～2025年1月　社内通貨（交通費）清算額")
+                
+                # データの準備
+                person_data = df[df['name'] == name].copy()
+                
+                # 日付ごとのデータをグループ化
+                daily_data = {}
+                
+                for _, row in person_data.iterrows():
+                    date = row.get('date', '')
+                    if not date:
+                        continue
+                    
+                    if date not in daily_data:
+                        daily_data[date] = {
+                            'routes': [],
+                            'total_distance': 0
+                        }
+                    
                     for route in row['routes']:
-                        display_rows.append({
-                            '日付': row['date'],
-                            '担当者': row['name'],
-                            '経路': route['route'],
-                            '距離(km)': route['distance'],
-                            'No.': row.name + 1
+                        route_text = route.get('route', '').replace('\n', ' ').strip()
+                        distance = route.get('distance', 0)
+                        daily_data[date]['routes'].append({
+                            'route': route_text or '',
+                            'distance': distance or 0
+                        })
+                        daily_data[date]['total_distance'] += distance or 0
+                
+                # 表示用データの作成
+                display_rows = []
+                
+                # 日付でソートしてデータを処理
+                for date in sorted(daily_data.keys(), key=lambda x: tuple(map(int, x.split('/')))):
+                    day_data = daily_data[date]
+                    
+                    # 同日の経路を別々の行に表示
+                    for route in day_data['routes']:
+                        row_data = {
+                            '日付': date or '',
+                            '経路': route['route'] or '',
+                            '合計\n距離\n(km)': route['distance'] or '',
+                            '交通費\n(距離×15P)\n(円)': '',
+                            '運転\n手当\n(円)': '',
+                            '合計\n(円)': ''
+                        }
+                        display_rows.append(row_data)
+                    
+                    # 日ごとの合計行を更新
+                    total_transport = int((day_data['total_distance'] or 0) * 15)
+                    daily_total = total_transport + 200
+                    
+                    # 最後の行を更新
+                    if display_rows:
+                        display_rows[-1].update({
+                            '交通費\n(距離×15P)\n(円)': f"{total_transport:,}" if total_transport else '',
+                            '運転\n手当\n(円)': "200",
+                            '合計\n(円)': f"{daily_total:,}" if daily_total else ''
                         })
                 
-                # 表示用のDataFrame作成
+                # 総合計の計算
+                if display_rows:
+                    total_all = sum(int(row['合計\n(円)'].replace(',', '')) 
+                                  for row in display_rows if row['合計\n(円)'])
+                    
+                    # 合計行の追加
+                    display_rows.append({
+                        '日付': '合計',
+                        '経路': '',
+                        '合計\n距離\n(km)': '',
+                        '交通費\n(距離×15P)\n(円)': '',
+                        '運転\n手当\n(円)': '',
+                        '合計\n(円)': f"{total_all:,}" if total_all else ''
+                    })
+                
+                # DataFrameの表示
                 display_df = pd.DataFrame(display_rows)
                 st.dataframe(
                     display_df,
                     column_config={
                         '日付': st.column_config.TextColumn('日付', width=100),
-                        '担当者': st.column_config.TextColumn('担当者', width=150),
                         '経路': st.column_config.TextColumn('経路', width=400),
-                        '距離(km)': st.column_config.NumberColumn('距離(km)', format="%.1f", width=100),
-                        'No.': st.column_config.NumberColumn('No.', width=80)
+                        '合計\n距離\n(km)': st.column_config.NumberColumn('合計\n距離\n(km)', format="%.1f", width=100),
+                        '交通費\n(距離×15P)\n(円)': st.column_config.TextColumn('交通費\n(距離×15P)\n(円)', width=150),
+                        '運転\n手当\n(円)': st.column_config.TextColumn('運転\n手当\n(円)', width=100),
+                        '合計\n(円)': st.column_config.TextColumn('合計\n(円)', width=100)
                     },
+                    use_container_width=False,
                     hide_index=True
                 )
-
-            st.write("### 精算書")
-            # タブの作成
-            unique_names = sorted(df['name'].unique())
-            tabs = st.tabs([f"{name}様" for name in unique_names])
-            
-            # 担当者ごとの精算書表示
-            for i, name in enumerate(unique_names):
-                with tabs[i]:
-                    # タイトル表示
-                    st.markdown(f"### {name}様 2024年12月25日～2025年1月　社内通貨（交通費）清算額")
-                    
-                    # データの準備
-                    person_data = df[df['name'] == name].copy()
-                    
-                    # 日付ごとのデータをグループ化
-                    daily_data = {}
-                    
-                    for _, row in person_data.iterrows():
-                        date = row.get('date', '')
-                        if not date:
-                            continue
-                        
-                        if date not in daily_data:
-                            daily_data[date] = {
-                                'routes': [],
-                                'total_distance': 0
-                            }
-                        
-                        for route in row['routes']:
-                            route_text = route.get('route', '').replace('\n', ' ').strip()
-                            distance = route.get('distance', 0)
-                            daily_data[date]['routes'].append({
-                                'route': route_text or '',
-                                'distance': distance or 0
-                            })
-                            daily_data[date]['total_distance'] += distance or 0
-                    
-                    # 表示用データの作成
-                    display_rows = []
-                    
-                    # 日付でソートしてデータを処理
-                    for date in sorted(daily_data.keys(), key=lambda x: tuple(map(int, x.split('/')))):
-                        day_data = daily_data[date]
-                        
-                        # 同日の経路を別々の行に表示
-                        for route in day_data['routes']:
-                            row_data = {
-                                '日付': date or '',
-                                '経路': route['route'] or '',
-                                '合計\n距離\n(km)': route['distance'] or '',
-                                '交通費\n(距離×15P)\n(円)': '',
-                                '運転\n手当\n(円)': '',
-                                '合計\n(円)': ''
-                            }
-                            display_rows.append(row_data)
-                        
-                        # 日ごとの合計行を更新
-                        total_transport = int((day_data['total_distance'] or 0) * 15)
-                        daily_total = total_transport + 200
-                        
-                        # 最後の行を更新
-                        if display_rows:
-                            display_rows[-1].update({
-                                '交通費\n(距離×15P)\n(円)': f"{total_transport:,}" if total_transport else '',
-                                '運転\n手当\n(円)': "200",
-                                '合計\n(円)': f"{daily_total:,}" if daily_total else ''
-                            })
-                    
-                    # 総合計の計算
-                    if display_rows:
-                        total_all = sum(int(row['合計\n(円)'].replace(',', '')) 
-                                      for row in display_rows if row['合計\n(円)'])
-                        
-                        # 合計行の追加
-                        display_rows.append({
-                            '日付': '合計',
-                            '経路': '',
-                            '合計\n距離\n(km)': '',
-                            '交通費\n(距離×15P)\n(円)': '',
-                            '運転\n手当\n(円)': '',
-                            '合計\n(円)': f"{total_all:,}" if total_all else ''
-                        })
-                    
-                    # DataFrameの表示
-                    display_df = pd.DataFrame(display_rows)
-                    st.dataframe(
-                        display_df,
-                        column_config={
-                            '日付': st.column_config.TextColumn('日付', width=100),
-                            '経路': st.column_config.TextColumn('経路', width=400),
-                            '合計\n距離\n(km)': st.column_config.NumberColumn('合計\n距離\n(km)', format="%.1f", width=100),
-                            '交通費\n(距離×15P)\n(円)': st.column_config.TextColumn('交通費\n(距離×15P)\n(円)', width=150),
-                            '運転\n手当\n(円)': st.column_config.TextColumn('運転\n手当\n(円)', width=100),
-                            '合計\n(円)': st.column_config.TextColumn('合計\n(円)', width=100)
-                        },
-                        use_container_width=False,
-                        hide_index=True
-                    )
-                    
-                    # 注釈表示
-                    st.markdown("""
-                        <div style='margin-top: 15px; color: #666;'>
-                            ※2025年1月分給与にて清算しました。
-                        </div>
-                    """, unsafe_allow_html=True)
+                
+                # 注釈表示
+                st.markdown("""
+                    <div style='margin-top: 15px; color: #666;'>
+                        ※2025年1月分給与にて清算しました。
+                    </div>
+                """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
