@@ -4,6 +4,8 @@ from io import BytesIO
 from datetime import datetime
 import re
 import openpyxl
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 
 # 定数
 RATE_PER_KM = 15
@@ -292,25 +294,25 @@ def export_to_excel(df, unique_names):
         worksheet.page_setup.paperSize = worksheet.PAPERSIZE_A4
         worksheet.page_setup.orientation = worksheet.ORIENTATION_LANDSCAPE
         
-        # 列幅の設定
-        worksheet.column_dimensions['A'].width = 15  # 日付
-        worksheet.column_dimensions['B'].width = 50  # 経路
-        worksheet.column_dimensions['C'].width = 15  # 合計距離
-        worksheet.column_dimensions['D'].width = 20  # 交通費
-        worksheet.column_dimensions['E'].width = 15  # 運転手当
-        worksheet.column_dimensions['F'].width = 15  # 合計
+        # 列幅の設定（より広く調整）
+        worksheet.column_dimensions['A'].width = 20  # 日付
+        worksheet.column_dimensions['B'].width = 60  # 経路
+        worksheet.column_dimensions['C'].width = 20  # 合計距離
+        worksheet.column_dimensions['D'].width = 25  # 交通費
+        worksheet.column_dimensions['E'].width = 20  # 運転手当
+        worksheet.column_dimensions['F'].width = 20  # 合計
         
         # 行の高さを設定
         worksheet.row_dimensions[1].height = 45  # タイトル行
-        worksheet.row_dimensions[2].height = 60  # ヘッダー行を60に変更
+        worksheet.row_dimensions[2].height = 60  # ヘッダー行
         
-        # タイトルを追加
+        # タイトルを追加（フォントサイズを大きく）
         title = f"{name}様 2025年1月 社内通貨（交通費）清算額"
         worksheet['A1'] = title
         worksheet.merge_cells('A1:F1')
         title_cell = worksheet['A1']
         title_cell.alignment = openpyxl.styles.Alignment(horizontal='center', vertical='center')
-        title_cell.font = openpyxl.styles.Font(size=14, bold=True)
+        title_cell.font = openpyxl.styles.Font(size=16, bold=True)  # フォントサイズを大きく
         
         # 余白の設定
         worksheet.page_margins.left = 0.5
@@ -318,54 +320,55 @@ def export_to_excel(df, unique_names):
         worksheet.page_margins.top = 0.5
         worksheet.page_margins.bottom = 0.5
         
-        # ヘッダーの書き込み
+        # ヘッダーの書き込み（フォントサイズを大きく）
         headers = ['日付', '経路', '合計距離(km)', '交通費（距離×15P）(円)', '運転手当(円)', '合計(円)']
         for col_idx, header in enumerate(headers, 1):
             cell = worksheet.cell(row=2, column=col_idx)
             cell.value = header
-            cell.font = openpyxl.styles.Font(bold=True)
-            cell.alignment = openpyxl.styles.Alignment(horizontal='center', vertical='center')
+            cell.font = openpyxl.styles.Font(size=12, bold=True)  # フォントサイズを大きく
+            cell.alignment = openpyxl.styles.Alignment(horizontal='center', vertical='center', wrap_text=True)
             cell.fill = openpyxl.styles.PatternFill(start_color='E0E0E0', end_color='E0E0E0', fill_type='solid')
         
-        # データの書き込み（金額の桁区切りを追加）
+        # データの書き込み（フォントサイズを大きく）
         for row_idx, row in enumerate(expense_data.values, 3):
+            # データ行の高さを設定
             worksheet.row_dimensions[row_idx].height = 30
             
             for col_idx, value in enumerate(row, 1):
                 cell = worksheet.cell(row=row_idx, column=col_idx)
                 cell.value = value
-                cell.font = openpyxl.styles.Font(size=11)
-                
-                # 数値の書式設定
+                cell.font = openpyxl.styles.Font(size=11)  # フォントサイズを大きく
+                # 数値の右寄せ、文字列の左寄せ
                 if col_idx in [3, 4, 5, 6]:  # 数値列
                     cell.alignment = openpyxl.styles.Alignment(horizontal='right', vertical='center')
+                    # 数値のフォーマット
                     if col_idx == 3:  # 距離
                         cell.number_format = '#,##0.0'
                     else:  # 金額
-                        cell.number_format = '#,##0'  # 桁区切りを追加
+                        cell.number_format = '#,##0'
                 else:
                     cell.alignment = openpyxl.styles.Alignment(horizontal='left', vertical='center')
         
-        # 罫線の設定
-        thin_border = openpyxl.styles.Border(
-            left=openpyxl.styles.Side(style='thin'),
-            right=openpyxl.styles.Side(style='thin'),
-            top=openpyxl.styles.Side(style='thin'),
-            bottom=openpyxl.styles.Side(style='thin')
+        # 罫線の設定（より太く）
+        border = openpyxl.styles.Border(
+            left=openpyxl.styles.Side(style='medium'),
+            right=openpyxl.styles.Side(style='medium'),
+            top=openpyxl.styles.Side(style='medium'),
+            bottom=openpyxl.styles.Side(style='medium')
         )
         
         for row in worksheet.iter_rows(min_row=2, max_row=len(expense_data.values)+2, min_col=1, max_col=6):
             for cell in row:
-                cell.border = thin_border
+                cell.border = border
         
         # 注釈を追加
         note_row = len(expense_data) + 4
-        worksheet.row_dimensions[note_row].height = 30  # 注釈行
+        worksheet.row_dimensions[note_row].height = 30
         note_cell = worksheet[f'A{note_row}']
         note_cell.value = "※2025年1月分給与にて清算しました。"
         worksheet.merge_cells(f'A{note_row}:F{note_row}')
         note_cell.alignment = openpyxl.styles.Alignment(horizontal='left', vertical='center')
-        note_cell.font = openpyxl.styles.Font(size=9)
+        note_cell.font = openpyxl.styles.Font(size=11)  # フォントサイズを大きく
     
     # ファイルを保存
     workbook.save(output)
@@ -494,6 +497,36 @@ def main():
                                 ※2025年1月分給与にて清算しました。
                             </div>
                         """, unsafe_allow_html=True)
+
+    # ダウンロードボタン
+    st.markdown("---")
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        # PNGダウンロードボタン
+        if st.button("表示中の精算書をPNGでダウンロード"):
+            png_data = create_png(expense_data, name)
+            st.download_button(
+                label="PNGをダウンロード",
+                data=png_data,
+                file_name=f'精算書_{name}様_{calculationDate}.png',
+                mime='image/png'
+            )
+    with col2:
+        # Excelダウンロードボタン（既存のコード）
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            for name in unique_names:
+                person_data = df[df['name'] == name].copy()
+                expense_data = create_expense_report(person_data)
+                expense_data.to_excel(writer, sheet_name=f"{name}様", index=False)
+        
+        excel_data = output.getvalue()
+        st.download_button(
+            label="全ての精算書をExcelでダウンロード",
+            data=excel_data,
+            file_name=f'精算書_全担当者_{calculationDate}.xlsx',
+            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
 
 if __name__ == "__main__":
     main()
