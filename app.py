@@ -15,6 +15,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.units import mm
 import plotly.graph_objects as go
+from html2image import Html2Image
 
 # 定数
 RATE_PER_KM = 15
@@ -274,33 +275,49 @@ def create_pdf(expense_data, name):
     return buffer
 
 def create_png(expense_data, name):
-    # Plotlyでテーブルを作成
-    fig = go.Figure(data=[go.Table(
-        header=dict(
-            values=list(expense_data.columns),
-            fill_color='#2196F3',
-            align='center',
-            font=dict(color='white', size=12)
-        ),
-        cells=dict(
-            values=[expense_data[col] for col in expense_data.columns],
-            fill_color='white',
-            align=['center', 'left', 'right', 'right', 'right', 'right'],
-            font=dict(color='black', size=11)
-        )
-    )])
+    # HTMLテーブルを作成
+    html_content = f"""
+    <html>
+    <head>
+        <style>
+            body {{ font-family: Arial, sans-serif; padding: 20px; }}
+            table {{ border-collapse: collapse; width: 100%; }}
+            th, td {{ 
+                border: 1px solid #ddd; 
+                padding: 8px; 
+                text-align: left; 
+            }}
+            th {{ 
+                background-color: #2196F3; 
+                color: white; 
+            }}
+            .title {{ 
+                text-align: center; 
+                margin-bottom: 20px; 
+            }}
+            .note {{ 
+                margin-top: 15px; 
+                color: #666; 
+                font-size: 0.9em; 
+            }}
+        </style>
+    </head>
+    <body>
+        <h2 class="title">{name}様 2024年12月25日～2025年1月 社内通貨（交通費）清算額</h2>
+        {expense_data.to_html(index=False)}
+        <div class="note">※2025年1月分給与にて清算しました。</div>
+    </body>
+    </html>
+    """
     
-    # レイアウトの設定
-    fig.update_layout(
-        title=f"{name}様 2024年12月25日～2025年1月 社内通貨（交通費）清算額",
-        width=1200,
-        height=len(expense_data) * 30 + 150,
-        margin=dict(t=50, l=50, r=50, b=50)
+    # HTML to PNG
+    hti = Html2Image()
+    img_bytes = hti.screenshot(
+        html_str=html_content,
+        size=(1200, len(expense_data) * 30 + 200)
     )
     
-    # PNGとして保存
-    img_bytes = fig.to_image(format="png", scale=2)
-    return img_bytes
+    return img_bytes[0]  # 最初の画像を返す
 
 def main():
     st.title("PINO精算アプリケーション")
@@ -424,7 +441,9 @@ def main():
         with col1:
             # PNGダウンロードボタン
             if st.button("表示中の精算書をPNGでダウンロード"):
-                png_bytes = create_png(expense_data, name)
+                png_path = create_png(expense_data, name)
+                with open(png_path, 'rb') as f:
+                    png_bytes = f.read()
                 st.download_button(
                     label="PNGをダウンロード",
                     data=png_bytes,
