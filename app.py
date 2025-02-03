@@ -232,8 +232,8 @@ def main():
                             route = ' '.join(route_parts[2:-1]) if distance > 0 else ' '.join(route_parts[2:])
                             
                             display_rows.append({
-                                '担当者': line.split()[1],
                                 '日付': line.split()[2],
+                                '担当者': line.split()[1],
                                 '経路': route,
                                 '距離(km)': distance,
                             })
@@ -242,21 +242,21 @@ def main():
                     # 表示用のDataFrame作成
                     display_df = pd.DataFrame(display_rows)
                     
-                    # データフレームを表示
+                    # データフレームを表示（横長に調整）
                     st.dataframe(
                         display_df,
                         column_config={
-                            '担当者': st.column_config.TextColumn(
-                                '担当者',
-                                width=150
-                            ),
                             '日付': st.column_config.TextColumn(
                                 '日付',
                                 width=100
                             ),
+                            '担当者': st.column_config.TextColumn(
+                                '担当者',
+                                width=120
+                            ),
                             '経路': st.column_config.TextColumn(
                                 '経路',
-                                width=500
+                                width=300
                             ),
                             '距離(km)': st.column_config.NumberColumn(
                                 '距離(km)',
@@ -265,8 +265,8 @@ def main():
                             )
                         },
                         hide_index=True,
-                        height=600,
-                        use_container_width=True
+                        height=400,  # 高さを縮小
+                        use_container_width=False  # 横幅を自動調整しない
                     )
                     
                     # 合計距離の表示
