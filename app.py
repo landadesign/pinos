@@ -97,84 +97,42 @@ def create_expense_table_image(df, name):
     return img_byte_arr
 
 def parse_expense_data(text):
-    try:
-        # テキストの前処理
-        lines = [line.strip() for line in text.split('\n') if line.strip()]
-        data = []
-        daily_routes = {}
-        
-        # 各行を解析
-        for line in lines:
-            # 【ピノ】形式のデータを解析
-            if '【ピノ】' in line:
-                # パターン: 【ピノ】名前 日付(曜日) 経路 距離
-                pino_match = re.match(r'【ピノ】\s*([^\s]+)\s+(\d+/\d+)\s*\(.\)\s*(.+?)(?:\s+(\d+\.?\d*)(?:km|㎞|ｋｍ|kｍ))?$', line)
-                if pino_match:
-                    name = pino_match.group(1).replace('様', '')
-                    date = pino_match.group(2)
-                    route = pino_match.group(3).strip()
-                    distance_str = pino_match.group(4)
-                    
-                    # 距離の取得
-                    if distance_str:
-                        distance = float(distance_str)
-                    else:
-                        # 経路からポイント数を計算（デフォルトの場合）
-                        route_points = route.split('→')
-                        distance = (len(route_points) - 1) * 5.0
-                    
-                    if name not in daily_routes:
-                        daily_routes[name] = {}
-                    if date not in daily_routes[name]:
-                        daily_routes[name][date] = []
-                    
-                    # 重複チェック
-                    route_exists = False
-                    for existing_route in daily_routes[name][date]:
-                        if existing_route['route'] == route:
-                            route_exists = True
-                            break
-                    
-                    if not route_exists:
-                        daily_routes[name][date].append({
-                            'route': route,
-                            'distance': distance
-                        })
-        
-        # 日付ごとのデータを集計
-        for name, dates in daily_routes.items():
-            for date, routes in sorted(dates.items(), key=lambda x: tuple(map(int, x[0].split('/')))):
-                # 同じ日の距離を合算
-                total_distance = sum(route['distance'] for route in routes)
-                transportation_fee = int(total_distance * RATE_PER_KM)  # 切り捨て
+    # 前処理：改行とスペースの正規化
+    lines = text.replace('\r\n', '\n').split('\n')
+    entries = []
+    entry_id = 0
+    
+    for line in lines:
+        if '【ピノ】' in line:
+            try:
+                # 基本情報の抽出
+                parts = line.split('】')[1].strip().split()
+                name = parts[0]
+                date = parts[1]
                 
-                data.append({
-                    'name': name,
-                    'date': date,
-                    'routes': routes,
-                    'total_distance': total_distance,
-                    'transportation_fee': transportation_fee,
-                    'allowance': DAILY_ALLOWANCE,  # 1日1回のみ
-                    'total': transportation_fee + DAILY_ALLOWANCE
-                })
-        
-        if data:
-            # データをDataFrameに変換
-            df = pd.DataFrame(data)
-            
-            # 日付でソート
-            df['date_sort'] = df['date'].apply(lambda x: tuple(map(int, x.split('/'))))
-            df = df.sort_values(['name', 'date_sort'])
-            df = df.drop('date_sort', axis=1)
-            
-            return df
-        
-        st.error("データが見つかりませんでした。正しい形式で入力してください。")
-        return None
-        
-    except Exception as e:
-        st.error(f"エラーが発生しました: {str(e)}")
-        return None
+                # 経路と距離の抽出
+                route_start = line.find(date) + len(date)
+                distance_match = re.search(r'(\d+\.?\d*)(?:km|㎞|ｋｍ|kｍ)', line)
+                
+                if distance_match:
+                    distance = float(distance_match.group(1))
+                    route_end = line.find(distance_match.group(0))
+                    route = line[route_start:route_end].strip()
+                    
+                    entry_id += 1
+                    entries.append({
+                        'id': entry_id,
+                        'name': name,
+                        'date': date,
+                        'route': route,
+                        'distance': distance
+                    })
+            except Exception as e:
+                print(f"Error parsing line: {line}")
+                print(f"Error: {str(e)}")
+                continue
+    
+    return pd.DataFrame(entries)
 
 def main():
     st.title("PINO精算アプリケーション")
@@ -207,32 +165,22 @@ def main():
             </h2>
             """, unsafe_allow_html=True)
             
-            # 表示用のデータを作成（入力順を維持）
-            display_rows = []
-            for _, row in df.iterrows():
-                display_rows.append({
-                    '日付': row['date'],
-                    '担当者': row['name'],
-                    '経路': row['route'],
-                    '距離(km)': row['distance']
-                })
-            
-            # データフレームを表示
-            display_df = pd.DataFrame(display_rows)
+            # データフレームを表示（入力順を維持）
             st.dataframe(
-                display_df,
+                df,
                 column_config={
-                    '日付': st.column_config.TextColumn('日付', width=100),
-                    '担当者': st.column_config.TextColumn('担当者', width=120),
-                    '経路': st.column_config.TextColumn('経路', width=500),
-                    '距離(km)': st.column_config.NumberColumn('距離(km)', format="%.1f", width=100)
+                    'id': st.column_config.NumberColumn('No.', width=70),
+                    'date': st.column_config.TextColumn('日付', width=100),
+                    'name': st.column_config.TextColumn('担当者', width=120),
+                    'route': st.column_config.TextColumn('経路', width=500),
+                    'distance': st.column_config.NumberColumn('距離(km)', format="%.1f", width=100)
                 },
                 hide_index=True,
                 height=400
             )
             
             # 合計距離の表示
-            total_distance = display_df['距離(km)'].sum()
+            total_distance = df['distance'].sum()
             st.markdown(f"""
             <div style='text-align: right; padding: 10px; margin-top: 10px;'>
                 <h3>合計距離 {total_distance:.1f} km</h3>
