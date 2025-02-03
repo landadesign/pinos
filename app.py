@@ -316,7 +316,7 @@ def main():
                         '交通費（距離×15P）(円)': st.column_config.NumberColumn(
                             '交通費（距離×15P）(円)',
                             format="%d",
-                            width=180  # 幅を広げました
+                            width=180
                         ),
                         '運転手当(円)': st.column_config.NumberColumn(
                             '運転手当(円)',
