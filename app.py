@@ -274,17 +274,14 @@ def main():
                     # データの準備
                     person_data = df[df['name'] == name].copy()
                     
-                    # 日付でソート
-                    person_data['sort_date'] = person_data['date'].apply(
-                        lambda x: tuple(map(int, x.split('/'))) if x else (0, 0)
-                    )
-                    person_data = person_data.sort_values('sort_date')
-                    
                     # 日付ごとのデータをグループ化
                     daily_data = {}
                     
                     for _, row in person_data.iterrows():
-                        date = row['date']
+                        date = row.get('date', '')
+                        if not date:
+                            continue
+                        
                         if date not in daily_data:
                             daily_data[date] = {
                                 'routes': [],
@@ -292,26 +289,27 @@ def main():
                             }
                         
                         for route in row['routes']:
-                            route_text = route['route'].replace('\n', ' ').strip()
+                            route_text = route.get('route', '').replace('\n', ' ').strip()
                             distance = route.get('distance', 0)
                             daily_data[date]['routes'].append({
-                                'route': route_text,
-                                'distance': distance
+                                'route': route_text or '',
+                                'distance': distance or 0
                             })
-                            daily_data[date]['total_distance'] += distance
+                            daily_data[date]['total_distance'] += distance or 0
                     
                     # 表示用データの作成
                     display_rows = []
                     
-                    for date in sorted(daily_data.keys()):
+                    # 日付でソートしてデータを処理
+                    for date in sorted(daily_data.keys(), key=lambda x: tuple(map(int, x.split('/')))):
                         day_data = daily_data[date]
                         
                         # 同日の経路を別々の行に表示
                         for route in day_data['routes']:
                             row_data = {
-                                '日付': date,
-                                '経路': route['route'],
-                                '合計\n距離\n(km)': route['distance'] if route['distance'] else '',
+                                '日付': date or '',
+                                '経路': route['route'] or '',
+                                '合計\n距離\n(km)': route['distance'] or '',
                                 '交通費\n(距離×15P)\n(円)': '',
                                 '運転\n手当\n(円)': '',
                                 '合計\n(円)': ''
@@ -319,15 +317,16 @@ def main():
                             display_rows.append(row_data)
                         
                         # 日ごとの合計行を更新
-                        total_transport = int(day_data['total_distance'] * 15)
+                        total_transport = int((day_data['total_distance'] or 0) * 15)
                         daily_total = total_transport + 200
                         
                         # 最後の行を更新
-                        display_rows[-1].update({
-                            '交通費\n(距離×15P)\n(円)': f"{total_transport:,}",
-                            '運転\n手当\n(円)': "200",
-                            '合計\n(円)': f"{daily_total:,}"
-                        })
+                        if display_rows:
+                            display_rows[-1].update({
+                                '交通費\n(距離×15P)\n(円)': f"{total_transport:,}" if total_transport else '',
+                                '運転\n手当\n(円)': "200",
+                                '合計\n(円)': f"{daily_total:,}" if daily_total else ''
+                            })
                     
                     # 総合計の計算
                     if display_rows:
@@ -341,7 +340,7 @@ def main():
                             '合計\n距離\n(km)': '',
                             '交通費\n(距離×15P)\n(円)': '',
                             '運転\n手当\n(円)': '',
-                            '合計\n(円)': f"{total_all:,}"
+                            '合計\n(円)': f"{total_all:,}" if total_all else ''
                         })
                     
                     # DataFrameの表示
